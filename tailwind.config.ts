@@ -18,7 +18,16 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+				mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+				display: ['"Cormorant"', 'Georgia', 'serif'],
+			},
 			colors: {
+				surface: 'hsl(var(--surface))',
+				lapis: 'hsl(var(--lapis))',
+				glow: 'hsl(var(--glow))',
+				beam: 'hsl(var(--beam))',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -84,11 +93,40 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					from: { opacity: '0', transform: 'translateY(12px)' },
+					to: { opacity: '1', transform: 'none' }
+				},
+				'scale-in': {
+					from: { opacity: '0', transform: 'scale(0.96)' },
+					to: { opacity: '1', transform: 'scale(1)' }
+				},
+				'tilt': {
+					'0%': { transform: 'rotate(-4.6deg)' },
+					'100%': { transform: 'rotate(4.6deg)' }
+				},
+				'pan-l': {
+					'0%': { transform: 'translateY(-12px)' },
+					'100%': { transform: 'translateY(12px)' }
+				},
+				'pan-r': {
+					'0%': { transform: 'translateY(12px)' },
+					'100%': { transform: 'translateY(-12px)' }
+				},
+				'spin-slow': {
+					to: { transform: 'rotate(360deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s cubic-bezier(0.2,0.7,0.2,1) both',
+				'scale-in': 'scale-in 0.25s ease-out both',
+				'tilt': 'tilt 11s ease-in-out infinite alternate',
+				'pan-l': 'pan-l 11s ease-in-out infinite alternate',
+				'pan-r': 'pan-r 11s ease-in-out infinite alternate',
+				'spin-slow': 'spin-slow 60s linear infinite'
 			}
 		}
 	},

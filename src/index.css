@@ -4,89 +4,96 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 39 42% 89%;
+    --foreground: 38 25% 8%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 39 38% 85%;
+    --card-foreground: 38 25% 8%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 41 65% 95%;
+    --popover-foreground: 38 25% 8%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 20 64% 37%;
+    --primary-foreground: 41 65% 95%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 39 32% 79%;
+    --secondary-foreground: 38 25% 8%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 39 30% 81%;
+    --muted-foreground: 36 16% 37%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 39 32% 78%;
+    --accent-foreground: 38 25% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 4 62% 42%;
+    --destructive-foreground: 41 65% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 39 28% 74%;
+    --input: 39 28% 74%;
+    --ring: 20 64% 37%;
 
-    --radius: 0.5rem;
+    --radius: 0.125rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* сцена Маат */
+    --surface: 39 35% 83%;
+    --grid: 39 28% 74%;
+    --beam: 37 18% 25%;
+    --lapis: 221 50% 37%;
+    --glow: 30 54% 54%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 39 38% 85%;
+    --sidebar-foreground: 38 25% 8%;
+    --sidebar-primary: 20 64% 37%;
+    --sidebar-primary-foreground: 41 65% 95%;
+    --sidebar-accent: 39 32% 78%;
+    --sidebar-accent-foreground: 38 25% 8%;
+    --sidebar-border: 39 28% 74%;
+    --sidebar-ring: 20 64% 37%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 38 30% 6%;
+    --foreground: 41 40% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 38 22% 11%;
+    --card-foreground: 41 40% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 38 26% 9%;
+    --popover-foreground: 41 40% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 24 74% 52%;
+    --primary-foreground: 38 40% 7%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 38 18% 16%;
+    --secondary-foreground: 41 40% 92%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 38 18% 16%;
+    --muted-foreground: 39 15% 64%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 38 18% 18%;
+    --accent-foreground: 41 40% 92%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 4 62% 46%;
+    --destructive-foreground: 41 65% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 38 16% 19%;
+    --input: 38 16% 19%;
+    --ring: 24 74% 52%;
+
+    --surface: 38 22% 11%;
+    --grid: 38 18% 21%;
+    --beam: 41 28% 80%;
+    --lapis: 221 62% 64%;
+    --glow: 30 72% 62%;
+
+    --sidebar-background: 38 26% 9%;
+    --sidebar-foreground: 41 40% 92%;
+    --sidebar-primary: 24 74% 52%;
+    --sidebar-primary-foreground: 38 40% 7%;
+    --sidebar-accent: 38 18% 18%;
+    --sidebar-accent-foreground: 41 40% 92%;
+    --sidebar-border: 38 16% 19%;
+    --sidebar-ring: 24 74% 52%;
   }
 }
 
@@ -95,7 +102,96 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 84px;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-mono antialiased;
+  }
+
+  ::selection {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+@layer components {
+  .maat-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--grid) / 0.7) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--grid) / 0.7) 1px, transparent 1px);
+    background-size: 74px 74px;
+    -webkit-mask-image: radial-gradient(
+      115% 85% at 68% 52%,
+      #000 0%,
+      transparent 72%
+    );
+    mask-image: radial-gradient(115% 85% at 68% 52%, #000 0%, transparent 72%);
+    opacity: 0.75;
+  }
+
+  .maat-grid-soft {
+    background-image:
+      linear-gradient(to right, hsl(var(--grid) / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--grid) / 0.55) 1px, transparent 1px);
+    background-size: 74px 74px;
+    -webkit-mask-image: radial-gradient(
+      120% 100% at 50% 0%,
+      #000 0%,
+      transparent 78%
+    );
+    mask-image: radial-gradient(120% 100% at 50% 0%, #000 0%, transparent 78%);
+    opacity: 0.5;
+  }
+
+  .eyebrow {
+    @apply text-[0.72rem] uppercase tracking-[0.28em] text-muted-foreground;
+  }
+
+  .label-mono {
+    @apply text-[0.68rem] uppercase tracking-[0.2em] text-muted-foreground;
+  }
+
+  .rise {
+    animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .d1 {
+    animation-delay: 0.05s;
+  }
+  .d2 {
+    animation-delay: 0.16s;
+  }
+  .d3 {
+    animation-delay: 0.27s;
+  }
+  .d4 {
+    animation-delay: 0.38s;
+  }
+  .d5 {
+    animation-delay: 0.5s;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
