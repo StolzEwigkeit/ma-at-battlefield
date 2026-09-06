@@ -6,6 +6,7 @@ const links = [
   { href: '#board', label: 'Поле' },
   { href: '#pantheon', label: 'Боги' },
   { href: '#classes', label: 'Классы' },
+  { href: '#priests', label: 'Жрецы' },
   { href: '#rules', label: 'Правила' },
   { href: '#dragons', label: 'Драконы' },
   { href: '#lobby', label: 'Лобби' },

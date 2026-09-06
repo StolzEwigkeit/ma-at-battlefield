@@ -3,6 +3,7 @@ import Hero from '@/components/Hero';
 import BoardSection from '@/components/BoardSection';
 import PantheonSection from '@/components/PantheonSection';
 import ClassesSection from '@/components/ClassesSection';
+import PriestsSection from '@/components/PriestsSection';
 import RulesSection from '@/components/RulesSection';
 import DragonsSection from '@/components/DragonsSection';
 import LobbySection from '@/components/LobbySection';
@@ -18,6 +19,7 @@ const Index = () => {
         <BoardSection />
         <PantheonSection />
         <ClassesSection />
+        <PriestsSection />
         <RulesSection />
         <DragonsSection />
         <LobbySection />
