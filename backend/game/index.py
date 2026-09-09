@@ -66,6 +66,46 @@ BOT_NAMES = [
 BOT_GODS = ['set', 'anubis', 'isis', 'osiris', 'bast', 'thoth', 'ra']
 BOT_CLASSES = ['warrior', 'vizier', 'priest', 'scribe']
 
+DIFFICULTY = {
+    'cautious': {
+        'name': 'осторожные',
+        'attack_chance': 0.15,
+        'betray_chance': 0.05,
+        'ally_accept': 0.85,
+        'ally_offer': 0.35,
+        'heal_threshold': 8,
+        'combat_bonus': 0,
+        'god_pool': ['bast', 'isis', 'osiris', 'ra'],
+        'class_pool': ['priest', 'vizier', 'scribe'],
+    },
+    'normal': {
+        'name': 'обычные',
+        'attack_chance': 0.35,
+        'betray_chance': 0.2,
+        'ally_accept': 0.6,
+        'ally_offer': 0.25,
+        'heal_threshold': 6,
+        'combat_bonus': 0,
+        'god_pool': BOT_GODS,
+        'class_pool': BOT_CLASSES,
+    },
+    'aggressive': {
+        'name': 'агрессивные',
+        'attack_chance': 0.7,
+        'betray_chance': 0.45,
+        'ally_accept': 0.35,
+        'ally_offer': 0.15,
+        'heal_threshold': 4,
+        'combat_bonus': 2,
+        'god_pool': ['set', 'anubis', 'thoth', 'ra'],
+        'class_pool': ['warrior', 'warrior', 'vizier', 'scribe'],
+    },
+}
+
+
+def profile(name: str) -> dict:
+    return DIFFICULTY.get(name, DIFFICULTY['normal'])
+
 
 def perform_move(cur, table_id: int, round_num: int, player: dict) -> bool:
     """Проводит один ход Избранного: бросок, эффект клетки, добор карт. Возвращает True, если игрок выбыл."""
@@ -107,8 +147,21 @@ def perform_move(cur, table_id: int, round_num: int, player: dict) -> bool:
     return is_out
 
 
-def bot_play_card(cur, table_id: int, round_num: int, bot: dict):
-    """Бот разыгрывает карту, если условие подходит."""
+def pick_target(cur, table_id: int, bot: dict, mood: dict):
+    """Выбирает жертву: агрессивные бьют лидера, осторожные — самого слабого."""
+    cur.execute(
+        f"SELECT * FROM players WHERE table_id = {table_id} AND is_out = FALSE AND id <> {bot['id']}"
+    )
+    others = [dict(p) for p in cur.fetchall()]
+    if not others:
+        return None
+    if mood['attack_chance'] >= 0.6:
+        return max(others, key=lambda p: p['feathers'])
+    return min(others, key=lambda p: p['health'])
+
+
+def bot_play_card(cur, table_id: int, round_num: int, bot: dict, mood: dict):
+    """Бот разыгрывает карту с учётом характера: лечится, бьёт или копит перья."""
     cur.execute(f"SELECT * FROM player_cards WHERE player_id = {bot['id']} AND status = 'hand' ORDER BY id")
     hand = cur.fetchall()
     if not hand:
@@ -120,23 +173,114 @@ def bot_play_card(cur, table_id: int, round_num: int, bot: dict):
     alliance_count = cur.fetchone()['n']
     tile_type = tile(bot['position'])['type']
 
+    playable = []
     for row in hand:
         card = card_info(row['card_id'])
         allowed, _ = can_play(card, tile_type, alliance_count)
-        if not allowed or card.get('attack_bonus'):
-            continue
-        position = advance(bot['position'], card['move']) if card.get('move') else bot['position']
-        health = max(0, min(12, bot['health'] + card.get('reward_health', 0)))
-        feathers = max(0, bot['feathers'] + card.get('reward_feathers', 0))
-        cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {row['id']}")
-        cur.execute(
-            f"UPDATE players SET position = {position}, health = {health}, feathers = {feathers}, "
-            f"cards = GREATEST(0, cards - 1) WHERE id = {bot['id']}"
-        )
-        log(cur, table_id, round_num, 'card', f"{bot['nickname']} разыгрывает «{card['name']}».")
-        for _ in range(card.get('draw', 0) + (1 if card.get('reward_card') else 0)):
-            give_card(cur, table_id, bot['id'], round_num)
+        if allowed:
+            playable.append((row, card))
+    if not playable:
         return
+
+    def score(item):
+        _, card = item
+        value = card.get('reward_feathers', 0) * 2 + card.get('draw', 0)
+        if card.get('attack_bonus'):
+            value += 6 if random.random() < mood['attack_chance'] else -6
+        if card.get('reward_health', 0) > 0:
+            value += 5 if bot['health'] <= mood['heal_threshold'] else 1
+        if card.get('reward_health', 0) < 0:
+            value -= 4 if bot['health'] <= mood['heal_threshold'] else 0
+        return value
+
+    row, card = max(playable, key=score)
+
+    if card.get('attack_bonus'):
+        if random.random() > mood['attack_chance']:
+            return
+        target = pick_target(cur, table_id, bot, mood)
+        if not target:
+            return
+        mine = combat_power(bot) + card['attack_bonus'] + mood['combat_bonus']
+        theirs = combat_power(target)
+        cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {row['id']}")
+        cur.execute(f"UPDATE players SET cards = GREATEST(0, cards - 1) WHERE id = {bot['id']}")
+        if mine >= theirs:
+            target_health = max(0, target['health'] - 4)
+            cur.execute(
+                f"UPDATE players SET health = {target_health}, "
+                f"is_out = {'TRUE' if target_health <= 0 else 'FALSE'} WHERE id = {target['id']}"
+            )
+            cur.execute(f"UPDATE players SET feathers = feathers + 2 WHERE id = {bot['id']}")
+            log(cur, table_id, round_num, 'card',
+                f"{bot['nickname']} бьёт «{card['name']}» ({mine} против {theirs}): {target['nickname']} теряет 4 здоровья.")
+            if target_health <= 0:
+                log(cur, table_id, round_num, 'system', f"{target['nickname']} выбывает из партии.")
+        else:
+            cur.execute(f"UPDATE players SET health = GREATEST(0, health - 2) WHERE id = {bot['id']}")
+            log(cur, table_id, round_num, 'card',
+                f"{bot['nickname']} бьёт «{card['name']}» ({mine} против {theirs}) и получает отпор: −2 здоровья.")
+        return
+
+    position = advance(bot['position'], card['move']) if card.get('move') else bot['position']
+    health = max(0, min(12, bot['health'] + card.get('reward_health', 0)))
+    feathers = max(0, bot['feathers'] + card.get('reward_feathers', 0))
+    cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {row['id']}")
+    cur.execute(
+        f"UPDATE players SET position = {position}, health = {health}, feathers = {feathers}, "
+        f"cards = GREATEST(0, cards - 1), is_out = {'TRUE' if health <= 0 else 'FALSE'} WHERE id = {bot['id']}"
+    )
+    log(cur, table_id, round_num, 'card', f"{bot['nickname']} разыгрывает «{card['name']}».")
+    for _ in range(card.get('draw', 0) + (1 if card.get('reward_card') else 0)):
+        give_card(cur, table_id, bot['id'], round_num)
+
+
+def bot_social(cur, table_id: int, round_num: int, bot: dict, mood: dict):
+    """Бот решает, предать союзника или предложить новый союз."""
+    cur.execute(
+        f"SELECT a.*, pf.nickname AS from_name, pt.nickname AS to_name FROM alliances a "
+        f"JOIN players pf ON pf.id = a.from_player_id JOIN players pt ON pt.id = a.to_player_id "
+        f"WHERE a.table_id = {table_id} AND a.status = 'active' "
+        f"AND (a.from_player_id = {bot['id']} OR a.to_player_id = {bot['id']})"
+    )
+    active = [dict(a) for a in cur.fetchall()]
+
+    if active and random.random() < mood['betray_chance']:
+        a = random.choice(active)
+        other_id = a['to_player_id'] if a['from_player_id'] == bot['id'] else a['from_player_id']
+        other_name = a['to_name'] if a['from_player_id'] == bot['id'] else a['from_name']
+        cur.execute(f"UPDATE alliances SET status = 'broken' WHERE id = {a['id']}")
+        cur.execute(f"UPDATE players SET feathers = feathers + 2 WHERE id = {bot['id']}")
+        cur.execute(f"UPDATE players SET health = GREATEST(0, health - 2) WHERE id = {other_id}")
+        cur.execute(f"UPDATE players SET is_out = TRUE WHERE id = {other_id} AND health <= 0")
+        log(cur, table_id, round_num, 'betrayal',
+            f"{bot['nickname']} разрывает союз с {other_name}: +2 пера себе, −2 здоровья бывшему союзнику.")
+        return
+
+    if not active and random.random() < mood['ally_offer']:
+        cur.execute(
+            f"SELECT * FROM players WHERE table_id = {table_id} AND is_out = FALSE AND id <> {bot['id']}"
+        )
+        others = [dict(p) for p in cur.fetchall()]
+        candidates = []
+        for p in others:
+            cur.execute(
+                f"SELECT id FROM alliances WHERE table_id = {table_id} AND status <> 'broken' "
+                f"AND ((from_player_id = {bot['id']} AND to_player_id = {p['id']}) "
+                f"OR (from_player_id = {p['id']} AND to_player_id = {bot['id']}))"
+            )
+            if not cur.fetchone():
+                candidates.append(p)
+        if not candidates:
+            return
+        target = random.choice(candidates)
+        status = 'active' if target['is_bot'] else 'pending'
+        cur.execute(
+            f"INSERT INTO alliances (table_id, from_player_id, to_player_id, status, created_round) "
+            f"VALUES ({table_id}, {bot['id']}, {target['id']}, {esc(status)}, {round_num})"
+        )
+        log(cur, table_id, round_num, 'alliance',
+            f"{bot['nickname']} предлагает союз игроку {target['nickname']}.")
 
 
 def run_bots(cur, table_id: int):
@@ -154,11 +298,16 @@ def run_bots(cur, table_id: int):
         if not current['is_bot']:
             return
 
+        mood = profile(t.get('difficulty', 'normal'))
         perform_move(cur, table_id, t['round_num'], current)
         cur.execute(f"SELECT * FROM players WHERE id = {current['id']}")
         refreshed = dict(cur.fetchone())
         if not refreshed['is_out']:
-            bot_play_card(cur, table_id, t['round_num'], refreshed)
+            bot_play_card(cur, table_id, t['round_num'], refreshed, mood)
+            cur.execute(f"SELECT * FROM players WHERE id = {current['id']}")
+            refreshed = dict(cur.fetchone())
+            if not refreshed['is_out']:
+                bot_social(cur, table_id, t['round_num'], refreshed, mood)
 
         cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} ORDER BY seat_index")
         players_after = [dict(p) for p in cur.fetchall()]
@@ -224,6 +373,9 @@ def fetch_state(cur, code: str, token: str = '') -> dict:
         'table': {
             'code': t['code'], 'seats': t['seats'], 'status': t['status'],
             'round': t['round_num'],
+            'difficulty': t.get('difficulty', 'normal'),
+            'difficultyName': profile(t.get('difficulty', 'normal'))['name'],
+            'hasBots': any(p.get('is_bot') for p in players),
         },
         'board': BOARD,
         'players': [
@@ -317,11 +469,16 @@ def handler(event: dict, context) -> dict:
             bots = max(1, min(6, bots))
             god_id = body.get('godId') or 'ra'
             class_id = body.get('classId') or 'vizier'
+            difficulty = body.get('difficulty') or 'normal'
+            if difficulty not in DIFFICULTY:
+                difficulty = 'normal'
+            mood = profile(difficulty)
             new_code = make_code()
             new_token = make_token()
 
             cur.execute(
-                f"INSERT INTO tables (code, seats, status) VALUES ({esc(new_code)}, {bots + 1}, 'playing') RETURNING id"
+                f"INSERT INTO tables (code, seats, status, difficulty) "
+                f"VALUES ({esc(new_code)}, {bots + 1}, 'playing', {esc(difficulty)}) RETURNING id"
             )
             table_id = cur.fetchone()['id']
             cur.execute(
@@ -332,11 +489,11 @@ def handler(event: dict, context) -> dict:
             human_id = cur.fetchone()['id']
 
             names = random.sample(BOT_NAMES, bots)
-            bot_gods = [g for g in BOT_GODS if g != god_id]
+            bot_gods = [g for g in mood['god_pool'] if g != god_id] or BOT_GODS
             random.shuffle(bot_gods)
             for i in range(bots):
                 bot_god = bot_gods[i % len(bot_gods)]
-                bot_class = random.choice(BOT_CLASSES)
+                bot_class = random.choice(mood['class_pool'])
                 cur.execute(
                     f"INSERT INTO players (table_id, token, nickname, god_id, class_id, seat_index, is_bot, cards) "
                     f"VALUES ({table_id}, {esc(make_token())}, {esc(names[i])}, {esc(bot_god)}, "
@@ -351,7 +508,7 @@ def handler(event: dict, context) -> dict:
                 give_card(cur, table_id, human_id, 1)
 
             log(cur, table_id, 1, 'system',
-                f'{nickname} садится играть один против {bots} соперников. Круг первый.')
+                f"{nickname} садится играть один против {bots} соперников ({mood['name']}). Круг первый.")
             return ok({'code': new_code, 'token': new_token})
 
         if not code:
@@ -607,7 +764,7 @@ def handler(event: dict, context) -> dict:
                 f"{me['nickname']} предлагает союз игроку {target['nickname']}.")
 
             if target['is_bot']:
-                if random.random() < 0.6:
+                if random.random() < profile(table.get('difficulty', 'normal'))['ally_accept']:
                     cur.execute(
                         f"UPDATE alliances SET status = 'active' WHERE table_id = {table_id} "
                         f"AND from_player_id = {me['id']} AND to_player_id = {target['id']} AND status = 'pending'"

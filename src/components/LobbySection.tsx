@@ -16,6 +16,7 @@ const LobbySection = () => {
   const [god, setGod] = useState(gods[0].id);
   const [cls, setCls] = useState(classes[0].id);
   const [code, setCode] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState('normal');
 
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
@@ -66,6 +67,7 @@ const LobbySection = () => {
         bots: Math.max(1, seats - 1),
         godId: god,
         classId: cls,
+        difficulty,
       });
       saveSession({ code: res.code, token: res.token });
       navigate(`/game?code=${res.code}`);
@@ -230,10 +232,56 @@ const LobbySection = () => {
               </button>
             </div>
 
-            <p className="mt-3 text-[0.75rem] leading-relaxed text-muted-foreground">
-              Одиночная партия начнётся сразу: остальные {Math.max(1, seats - 1)} мест займут соперники под управлением
-              компьютера.
-            </p>
+            <div className="mt-6 border-t border-border pt-6">
+              <div className="label-mono mb-3">Характер соперников</div>
+              <div className="grid gap-2.5 sm:grid-cols-3">
+                {[
+                  {
+                    id: 'cautious',
+                    name: 'Осторожные',
+                    icon: 'Shield',
+                    hint: 'Почти не нападают, охотно идут в союз и редко предают.',
+                  },
+                  {
+                    id: 'normal',
+                    name: 'Обычные',
+                    icon: 'Scale',
+                    hint: 'Держат баланс: бьют по случаю, союзы разрывают редко.',
+                  },
+                  {
+                    id: 'aggressive',
+                    name: 'Агрессивные',
+                    icon: 'Swords',
+                    hint: 'Бьют лидера, дерутся с бонусом и предают почти каждый второй союз.',
+                  },
+                ].map((d) => {
+                  const isActive = difficulty === d.id;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDifficulty(d.id)}
+                      aria-pressed={isActive}
+                      className={`rounded-sm border p-4 text-left transition-colors ${
+                        isActive
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-background hover:border-primary/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon name={d.icon} size={15} className="text-primary" />
+                        <span className="font-sans text-[0.86rem] font-semibold text-foreground">{d.name}</span>
+                      </div>
+                      <p className="mt-2 text-[0.72rem] leading-relaxed text-muted-foreground">{d.hint}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-[0.75rem] leading-relaxed text-muted-foreground">
+                Одиночная партия начнётся сразу: остальные {Math.max(1, seats - 1)} мест займут соперники под
+                управлением компьютера.
+              </p>
+            </div>
 
             {code && (
               <div className="mt-8 animate-fade-in rounded-sm border border-primary/50 bg-primary/10 p-6">

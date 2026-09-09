@@ -141,6 +141,11 @@ const Game = () => {
             <span className="label-mono hidden sm:inline">
               Стол {state.table.code} · круг {state.table.round}
             </span>
+            {state.table.hasBots && (
+              <span className="label-mono hidden text-primary sm:inline">
+                соперники: {state.table.difficultyName}
+              </span>
+            )}
             {!me && !needJoin && <span className="label-mono text-primary">режим наблюдателя</span>}
           </div>
           <button

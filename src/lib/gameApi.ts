@@ -41,7 +41,15 @@ export type HandCard = {
 };
 
 export type GameState = {
-  table: { code: string; seats: number; status: 'lobby' | 'playing' | 'finished'; round: number };
+  table: {
+    code: string;
+    seats: number;
+    status: 'lobby' | 'playing' | 'finished';
+    round: number;
+    difficulty: string;
+    difficultyName: string;
+    hasBots: boolean;
+  };
   board: { id: number; name: string; type: string }[];
   players: GamePlayer[];
   alliances: GameAlliance[];
@@ -69,7 +77,13 @@ export const gameApi = {
   create: (payload: { nickname: string; seats: number; godId: string; classId: string }) =>
     call<{ code: string; token: string }>({ action: 'create', ...payload }),
 
-  createSolo: (payload: { nickname: string; bots: number; godId: string; classId: string }) =>
+  createSolo: (payload: {
+    nickname: string;
+    bots: number;
+    godId: string;
+    classId: string;
+    difficulty: string;
+  }) =>
     call<{ code: string; token: string }>({ action: 'create_solo', ...payload }),
 
   join: (payload: { code: string; nickname: string; godId: string; classId: string }) =>
