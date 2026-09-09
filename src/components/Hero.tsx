@@ -4,6 +4,17 @@ import ScalesOfMaat from '@/components/ScalesOfMaat';
 const Hero = () => {
   return (
     <section id="top" className="relative flex min-h-screen flex-col overflow-hidden px-5 pb-8 pt-[92px] md:px-10 lg:px-16">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <img
+          src="https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/360c3b73-b00c-425f-adb0-e2f4c0f08da2.jpg"
+          alt=""
+          className="hero-bg h-full w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-background/45 dark:bg-background/55" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-background to-transparent" />
+      </div>
+
       <div className="maat-grid pointer-events-none absolute inset-0" aria-hidden="true" />
       <div
         className="pointer-events-none absolute -top-[14%] right-[2%] h-[760px] w-[760px] rounded-full"
