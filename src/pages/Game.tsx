@@ -235,16 +235,17 @@ const Game = () => {
 
               <HandCards
                 hand={state.hand ?? []}
+                handLimit={state.handLimit ?? 7}
+                players={state.players}
+                meId={me?.id ?? null}
                 busy={busy}
                 myTurn={state.table.status === 'playing' && !!me && state.currentPlayerId === me.id && !me.isOut}
                 currentTileType={state.board.find((t) => t.id === me?.position)?.type ?? ''}
+                myHealth={me?.health ?? 12}
                 hasAlliance={state.alliances.some(
                   (a) => a.status === 'active' && (a.from === me?.id || a.to === me?.id),
                 )}
-                onPlay={(card) => {
-                  const target = state.players.find((p) => p.id !== me?.id && !p.isOut);
-                  return act(() => gameApi.playCard(code, token, card.id, target?.id));
-                }}
+                onPlay={(card, targetId) => act(() => gameApi.playCard(code, token, card.id, targetId))}
               />
 
               <div>

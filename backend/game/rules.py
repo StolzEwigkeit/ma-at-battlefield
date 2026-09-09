@@ -17,6 +17,8 @@ BOARD = [
 
 BOARD_SIZE = len(BOARD)
 
+VICTORY_FEATHERS = 20
+
 DRAGON_ATTITUDE = {
     'ra': 'guardian',
     'anubis': 'messenger',
@@ -168,6 +170,6 @@ def victory_check(players: list) -> dict | None:
     if len(alive) == 1 and len(players) > 1:
         return {'winner_id': alive[0]['id'], 'reason': 'Остальные Избранные выбыли'}
     for p in alive:
-        if p['feathers'] >= 12:
-            return {'winner_id': p['id'], 'reason': 'Собрано 12 перьев истины'}
+        if p['feathers'] >= VICTORY_FEATHERS:
+            return {'winner_id': p['id'], 'reason': f'Собрано {VICTORY_FEATHERS} перьев истины'}
     return None

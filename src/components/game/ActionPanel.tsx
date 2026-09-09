@@ -57,6 +57,9 @@ const ActionPanel = ({ state, me, busy, onMove, onSkip, onAbility, onAccept, onB
             Круг {state.table.round} ·{' '}
             {myTurn ? 'ваш ход' : `ходит ${state.players.find((p) => p.id === state.currentPlayerId)?.nickname ?? '—'}`}
           </div>
+          <div className="mt-2 text-[0.78rem] text-muted-foreground">
+            До победы: {Math.max(0, (state.victoryFeathers ?? 20) - (me?.feathers ?? 0))} перьев
+          </div>
 
           <div className="mt-5 grid gap-2.5">
             <button

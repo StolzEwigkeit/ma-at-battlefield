@@ -34,10 +34,11 @@ export type GameLogEntry = { id: number; round: number; kind: string; text: stri
 export type HandCard = {
   id: number;
   cardId: string;
-  kind: 'quest' | 'gear';
+  kind: 'quest' | 'gear' | 'intrigue';
   name: string;
   text: string;
   requirement: string;
+  needsTarget: boolean;
 };
 
 export type GameState = {
@@ -57,6 +58,8 @@ export type GameState = {
   currentPlayerId: number | null;
   me: { id: number; isHost: boolean } | null;
   hand: HandCard[];
+  handLimit: number;
+  victoryFeathers: number;
 };
 
 async function call<T>(payload: Record<string, unknown>, token?: string): Promise<T> {
