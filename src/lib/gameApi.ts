@@ -107,6 +107,8 @@ export const gameApi = {
     call<GameState>({ action: 'accept', code, allianceId }, token),
   betray: (code: string, token: string, allianceId: number) =>
     call<GameState>({ action: 'betray', code, allianceId }, token),
+  rematch: (code: string, token: string) =>
+    call<{ code: string; token: string }>({ action: 'rematch', code }, token),
   playCard: (code: string, token: string, handId: number, targetId?: number) =>
     call<GameState>({ action: 'play_card', code, handId, targetId }, token),
 };

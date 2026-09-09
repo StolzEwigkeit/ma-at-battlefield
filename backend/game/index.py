@@ -520,6 +520,58 @@ def handler(event: dict, context) -> dict:
             return err('Стол не найден', 404)
         table_id = table['id']
 
+        if action == 'rematch':
+            cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} AND token = {esc(token)}")
+            player = cur.fetchone()
+            if not player:
+                return err('Вы не за этим столом', 403)
+            if table['status'] != 'finished':
+                return err('Партия ещё не окончена')
+
+            cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} ORDER BY seat_index")
+            old_players = [dict(p) for p in cur.fetchall()]
+            bots = [p for p in old_players if p['is_bot']]
+            difficulty = table.get('difficulty', 'normal')
+            mood = profile(difficulty)
+            new_code = make_code()
+            new_token = make_token()
+            status = 'playing' if bots else 'lobby'
+
+            cur.execute(
+                f"INSERT INTO tables (code, seats, status, difficulty) "
+                f"VALUES ({esc(new_code)}, {table['seats']}, {esc(status)}, {esc(difficulty)}) RETURNING id"
+            )
+            new_table_id = cur.fetchone()['id']
+
+            cur.execute(
+                f"INSERT INTO players (table_id, token, nickname, god_id, class_id, seat_index, is_host, cards) "
+                f"VALUES ({new_table_id}, {esc(new_token)}, {esc(player['nickname'])}, {esc(player['god_id'])}, "
+                f"{esc(player['class_id'])}, 0, TRUE, 0) RETURNING id"
+            )
+            human_id = cur.fetchone()['id']
+
+            if bots:
+                for i, b in enumerate(bots):
+                    cur.execute(
+                        f"INSERT INTO players (table_id, token, nickname, god_id, class_id, seat_index, is_bot, cards) "
+                        f"VALUES ({new_table_id}, {esc(make_token())}, {esc(b['nickname'])}, {esc(b['god_id'])}, "
+                        f"{esc(b['class_id'])}, {i + 1}, TRUE, 0) RETURNING id"
+                    )
+                    bot_id = cur.fetchone()['id']
+                    for _ in range(3):
+                        give_card(cur, new_table_id, bot_id, 1)
+
+                hand_size = 2 if player['class_id'] == 'scribe' else 3
+                for _ in range(hand_size):
+                    give_card(cur, new_table_id, human_id, 1)
+                log(cur, new_table_id, 1, 'system',
+                    f"Реванш: {player['nickname']} снова садится против {len(bots)} соперников ({mood['name']}).")
+            else:
+                log(cur, new_table_id, 1, 'system',
+                    f"Реванш: {player['nickname']} собрал новый стол. Ждём игроков.")
+
+            return ok({'code': new_code, 'token': new_token})
+
         if action == 'join':
             nickname = (body.get('nickname') or 'Избранный').strip()[:24] or 'Избранный'
             god_id = body.get('godId') or 'ra'

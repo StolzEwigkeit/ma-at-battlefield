@@ -6,6 +6,7 @@ import PlayerList from '@/components/game/PlayerList';
 import GameLog from '@/components/game/GameLog';
 import ActionPanel from '@/components/game/ActionPanel';
 import HandCards from '@/components/game/HandCards';
+import GameOver from '@/components/game/GameOver';
 import { useToast } from '@/hooks/use-toast';
 import { clearSession, gameApi, loadSession, saveSession, type GameState } from '@/lib/gameApi';
 
@@ -41,11 +42,14 @@ const Game = () => {
     }
   }, [code, token]);
 
+  const finished = state?.table.status === 'finished';
+
   useEffect(() => {
     refresh();
+    if (finished) return;
     const timer = setInterval(refresh, 3000);
     return () => clearInterval(timer);
-  }, [refresh]);
+  }, [refresh, finished]);
 
   const act = async (fn: () => Promise<GameState>) => {
     setBusy(true);
@@ -81,6 +85,20 @@ const Game = () => {
   const leave = () => {
     clearSession();
     navigate('/');
+  };
+
+  const restart = async () => {
+    setBusy(true);
+    try {
+      const res = await gameApi.rematch(code, token);
+      saveSession({ code: res.code, token: res.token });
+      navigate(`/game?code=${res.code}&token=${res.token}`);
+      window.location.reload();
+    } catch (e) {
+      toast({ title: 'Не вышло начать заново', description: e instanceof Error ? e.message : '' });
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!code) {
@@ -159,7 +177,9 @@ const Game = () => {
         </div>
       </header>
 
-      {needJoin ? (
+      {state.table.status === 'finished' ? (
+        <GameOver state={state} me={me} busy={busy} onRestart={restart} onLeave={leave} />
+      ) : needJoin ? (
         <div className="mx-auto max-w-md px-5 py-24">
           <div className="rounded-sm border border-border bg-card p-7">
             <div className="label-mono">Стол {state.table.code}</div>
