@@ -25,7 +25,7 @@ const Footer = () => (
             ['#pantheon', 'Пантеон богов'],
             ['#classes', 'Классы'],
             ['#rules', 'Правила'],
-            ['#dragons', 'Драконы-Сфинксы'],
+            ['#dragons', 'Драконы'],
             ['#lobby', 'Лобби'],
             ['#ranking', 'Рейтинг'],
           ].map(([href, label]) => (
@@ -60,7 +60,7 @@ const Footer = () => (
           <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--glow))]" />
           Закрытый плейтест · {new Date().getFullYear()}
         </div>
-        <div>Сфинксы: посланник · враг · трикстер · хранитель</div>
+        <div>Драконы: посланник · враг · трикстер · хранитель</div>
       </div>
     </div>
   </footer>

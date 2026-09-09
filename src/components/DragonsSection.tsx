@@ -15,9 +15,9 @@ const DragonsSection = () => {
       />
       <div className="relative mx-auto max-w-[1440px] px-5 md:px-10 lg:px-16">
         <SectionHeading
-          eyebrow="Драконы-Сфинксы"
+          eyebrow="Драконы"
           title="Одно логово — четыре разных встречи"
-          description="Сфинкс не бросает кубик. Он смотрит, чей вы Избранный и что ваш бог когда-то ему пообещал. Наведите на карточку — узнаете условие."
+          description="Дракон не бросает кубик. Он смотрит, чей вы Избранный и что ваш бог когда-то ему пообещал. Наведите на карточку — узнаете условие."
         />
 
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

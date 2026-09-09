@@ -74,7 +74,7 @@ const Hero = () => {
           <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--glow))]" />
           Закрытый плейтест · новые столы каждый вечер
         </div>
-        <div>Сфинксы: посланник · враг · трикстер · хранитель</div>
+        <div>Драконы: посланник · враг · трикстер · хранитель</div>
       </div>
     </section>
   );

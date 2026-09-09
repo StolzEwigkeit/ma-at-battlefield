@@ -80,7 +80,7 @@ const PantheonSection = () => {
                 {[
                   { icon: 'Sparkles', label: 'Бонус', text: selected.bonus },
                   { icon: 'TriangleAlert', label: 'Штраф', text: selected.penalty },
-                  { icon: 'Mountain', label: 'Сфинксы', text: selected.dragonAttitude },
+                  { icon: 'Mountain', label: 'Драконы', text: selected.dragonAttitude },
                 ].map((row) => (
                   <div key={row.label} className="rounded-sm border border-border bg-card p-4">
                     <div className="label-mono mb-2 flex items-center gap-2">

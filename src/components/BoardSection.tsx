@@ -5,7 +5,7 @@ import { boardTiles } from '@/data/maat';
 
 const typeMeta: Record<string, { icon: string; hint: string }> = {
   храм: { icon: 'Landmark', hint: 'Территория бога' },
-  логово: { icon: 'Mountain', hint: 'Сфинкс выбирает роль' },
+  логово: { icon: 'Mountain', hint: 'Дракон выбирает роль' },
   рынок: { icon: 'ArrowLeftRight', hint: 'Обмен и сделки' },
   весы: { icon: 'Scale', hint: 'Взвешивание спора' },
   пустыня: { icon: 'Wind', hint: 'Движение и риск' },
