@@ -7,6 +7,7 @@ type Priest = {
   variant: string;
   title: string;
   image: string;
+  scene: string;
   quote: string;
   description: string;
   abilities: { icon: string; name: string; text: string }[];
@@ -42,6 +43,7 @@ const orders: Order[] = [
         variant: 'Мужская версия',
         title: 'Хем-нечер Анпу',
         image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/bucket/00c3c52f-4042-4285-8782-05fd66297a36.png',
+        scene: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/a00730b4-6a6b-487e-b99a-7bbf2917395a.jpg',
         quote: 'Я не сужу. Я лишь держу весы ровно.',
         description:
           'Бальзамировщик и проводник. Он идёт первым в логово дракона, потому что смерть для него — не конец хода, а часть ритуала. Там, где другие теряют Избранного, жрец Анпу забирает его перо.',
@@ -57,6 +59,7 @@ const orders: Order[] = [
         variant: 'Женская версия',
         title: 'Хемет-нечер Анпут',
         image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/bucket/14b4331f-cc50-42aa-a38a-dd8e10ceddaf.png',
+        scene: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/06e5eb7e-5cf6-410a-8c57-732f43282770.jpg',
         quote: 'Каждое имя я помню. Ни одно не пропало.',
         description:
           'Плакальщица и хранительница списков. Она ведёт счёт долгам стола: кто кому обещал, кто нарушил слово. В конце партии её память превращается в очки — или в приговор.',
@@ -85,6 +88,7 @@ const orders: Order[] = [
         variant: 'Мужская версия',
         title: 'Хем-нечер Баст',
         image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/1af4d840-b7de-43a2-b8dc-16b9aa288892.jpg',
+        scene: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/e59a875e-aefc-4d7e-8584-84c26bee5b63.jpg',
         quote: 'Бей сколько хочешь. Мои встают быстрее, чем твои падают.',
         description:
           'Смотритель зверинца и целитель. Пока другие спорят у весов, он держит союзников в живых и спускает львицу на того, кто подошёл слишком близко к его лагерю.',
@@ -100,6 +104,7 @@ const orders: Order[] = [
         variant: 'Женская версия',
         title: 'Хемет-нечер Бастет',
         image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/b14847bd-a064-4932-ba4e-abcc82ca84e8.jpg',
+        scene: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/98b634b1-a17d-496f-9a04-82d699861e63.jpg',
         quote: 'Кошки идут за той, кто их кормит. Люди — тоже.',
         description:
           'Танцовщица и укротительница. Её систр слышно через всё поле: там, где звучит ритм, союзники ходят дальше, а чужие кошки перестают слушаться хозяина.',
@@ -207,7 +212,21 @@ const PriestsSection = () => {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-sm border border-border bg-card p-8 md:p-10">
+          <div className="flex flex-col justify-between overflow-hidden rounded-sm border border-border bg-card">
+            <div className="relative h-56 w-full shrink-0 overflow-hidden md:h-64">
+              <img
+                src={current.scene}
+                alt={`${current.title} — сцена ордена`}
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+              <span
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent"
+                aria-hidden="true"
+              />
+            </div>
+
+            <div className="flex flex-1 flex-col justify-between p-8 pt-5 md:p-10 md:pt-6">
             <div>
               <div className="label-mono">
                 {order.name} · {current.variant}
@@ -233,6 +252,7 @@ const PriestsSection = () => {
                   </div>
                 </div>
               ))}
+            </div>
             </div>
           </div>
         </div>
