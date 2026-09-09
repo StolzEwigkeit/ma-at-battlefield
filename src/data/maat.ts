@@ -227,6 +227,7 @@ export type RuleBlock = {
   id: string;
   title: string;
   icon: string;
+  image: string;
   short: string;
   points: string[];
 };
@@ -236,6 +237,7 @@ export const rules: RuleBlock[] = [
     id: 'scales',
     title: 'Весы Маат вместо кубика',
     icon: 'Scale',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/113f7bd1-c904-4cc0-be30-0fbafd6420d8.jpg',
     short: 'Спор и ничья решаются взвешиванием, а не случайным броском.',
     points: [
       'Каждая сторона спора кладёт на чашу ставку: карту, жетон или обещание хода.',
@@ -248,6 +250,7 @@ export const rules: RuleBlock[] = [
     id: 'alliance',
     title: 'Союзы и предательства',
     icon: 'Users',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/34dd829d-98c0-487e-b9ff-9b69f1cb6d6d.jpg',
     short: 'Альянс — это контракт на ходы, а не дружба.',
     points: [
       'Союз заключается на объявленное число ходов и записывается на поле.',
@@ -260,6 +263,7 @@ export const rules: RuleBlock[] = [
     id: 'dragons',
     title: 'Логова драконов',
     icon: 'Mountain',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/b844cee3-7bc9-4bd0-a80d-bd6b6c2777c0.jpg',
     short: 'Обоюдоострая локация: дракон бывает и наградой, и катастрофой.',
     points: [
       'Роль дракона определяется отношениями вашего бога с логовом, а не броском.',
@@ -272,6 +276,7 @@ export const rules: RuleBlock[] = [
     id: 'victory',
     title: 'Условие победы',
     icon: 'Crown',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/c0e7f6cb-1235-4dd6-ad31-97c5763f9850.jpg',
     short: 'Побеждает не самый сильный, а тот, чей порядок перевесил.',
     points: [
       'Партия идёт до момента, когда чаша порядка перевешивает чашу хаоса на три деления.',

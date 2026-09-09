@@ -48,6 +48,14 @@ const RulesSection = () => {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="pb-7 pl-[52px]">
+                  <div className="mb-5 overflow-hidden rounded-sm border border-border">
+                    <img
+                      src={r.image}
+                      alt={r.title}
+                      loading="lazy"
+                      className="h-44 w-full object-cover md:h-52"
+                    />
+                  </div>
                   <ul className="space-y-3">
                     {r.points.map((p) => (
                       <li key={p} className="flex gap-3 text-[0.85rem] leading-relaxed text-muted-foreground">
