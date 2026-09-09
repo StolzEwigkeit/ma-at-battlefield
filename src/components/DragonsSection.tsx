@@ -32,10 +32,23 @@ const DragonsSection = () => {
                 onFocus={() => setFlipped(d.id)}
                 onBlur={() => setFlipped(null)}
                 onClick={() => setFlipped(open ? null : d.id)}
-                className={`group relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-sm border p-7 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                className={`group relative flex min-h-[300px] flex-col overflow-hidden rounded-sm border text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   open ? 'border-primary bg-card -translate-y-1.5' : 'border-border bg-card/70'
                 }`}
               >
+                <div className="relative h-44 w-full overflow-hidden">
+                  <img
+                    src={d.image}
+                    alt={`Дракон в роли «${d.name}»`}
+                    loading="lazy"
+                    className={`h-full w-full object-cover transition-transform duration-500 ${
+                      open ? 'scale-105' : 'scale-100'
+                    }`}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                </div>
+
+                <div className="flex flex-1 flex-col justify-between p-7 pt-4">
                 <div className="flex items-start justify-between">
                   <span className="label-mono">{String(i + 1).padStart(2, '0')}</span>
                   <span
@@ -47,7 +60,7 @@ const DragonsSection = () => {
                   </span>
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-5">
                   <h3 className="font-sans text-xl font-extrabold tracking-[-0.02em] text-card-foreground">{d.name}</h3>
                   <div className="mt-4 space-y-3">
                     <div>
@@ -63,6 +76,7 @@ const DragonsSection = () => {
                       <p className="text-[0.8rem] leading-relaxed text-card-foreground">{d.effect}</p>
                     </div>
                   </div>
+                </div>
                 </div>
               </button>
             );

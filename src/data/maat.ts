@@ -175,6 +175,7 @@ export type DragonRole = {
   id: string;
   name: string;
   icon: string;
+  image: string;
   trigger: string;
   effect: string;
 };
@@ -184,6 +185,7 @@ export const dragonRoles: DragonRole[] = [
     id: 'messenger',
     name: 'Посланник',
     icon: 'Send',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/7f85678d-2dd2-40ba-90d0-af9225c51cd7.jpg',
     trigger: 'Ваш бог в добрых отношениях с драконом.',
     effect: 'Дракон отдаёт вам одну закрытую карту любого игрока и уходит без боя.',
   },
@@ -191,6 +193,7 @@ export const dragonRoles: DragonRole[] = [
     id: 'enemy',
     name: 'Враг',
     icon: 'Swords',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/231a9508-3368-4b15-b109-6c08f5a1ed0d.jpg',
     trigger: 'Ваш бог однажды нарушил договор с логовом.',
     effect: 'Бой начинается сразу, дракон ходит первым. Победа даёт двойной трофей.',
   },
@@ -198,6 +201,7 @@ export const dragonRoles: DragonRole[] = [
     id: 'trickster',
     name: 'Трикстер',
     icon: 'Shuffle',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/fd9d380f-3c30-4432-ab1a-8b768c57bb0d.jpg',
     trigger: 'Отношения нейтральны, а на столе есть активный альянс.',
     effect: 'Дракон меняет местами двух Избранных на поле — включая вашего.',
   },
@@ -205,6 +209,7 @@ export const dragonRoles: DragonRole[] = [
     id: 'guardian',
     name: 'Хранитель',
     icon: 'ShieldCheck',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/46fbdcbc-b782-4e4d-9a8f-534c750f1166.jpg',
     trigger: 'Вы принесли жертву в логово в предыдущем круге.',
     effect: 'Локация закрывается для всех, кроме вас, до конца круга.',
   },
