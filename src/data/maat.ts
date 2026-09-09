@@ -3,6 +3,7 @@ export type God = {
   name: string;
   epithet: string;
   glyph: string;
+  image: string;
   domain: string;
   bonus: string;
   penalty: string;
@@ -16,6 +17,7 @@ export const gods: God[] = [
     name: 'Ра',
     epithet: 'Полуденный свет',
     glyph: '☀',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/8b61c1c1-27b7-4f59-88aa-1250745e6886.jpg',
     domain: 'Порядок · Свет',
     bonus: 'Броня Ра: −1 к любому получаемому урону, пока Избранный стоит на освещённой клетке.',
     penalty: 'В фазе ночи броня не работает, а ходить можно только по прямой.',
@@ -28,6 +30,7 @@ export const gods: God[] = [
     name: 'Анубис',
     epithet: 'Проводник взвешивания',
     glyph: '𓃣',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/8456d928-d8ef-4bb2-ba93-5e937e736b30.jpg',
     domain: 'Смерть · Суд',
     bonus: 'Головы Анубиса: за каждого выбывшего Избранного получаете жетон головы, +1 к весам Маат.',
     penalty: 'Нельзя первым предлагать союз — к вам идут сами или не идут вовсе.',
@@ -40,6 +43,7 @@ export const gods: God[] = [
     name: 'Сет',
     epithet: 'Красная буря',
     glyph: '𓁿',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/48d27405-9d24-4c13-9d3e-e7510864eeb0.jpg',
     domain: 'Хаос · Война',
     bonus: 'Атака Сета: +2 к броску нападения и возможность бить по диагонали через локацию.',
     penalty: 'Любой союз с вами распадается через два хода — таково условие бури.',
@@ -52,6 +56,7 @@ export const gods: God[] = [
     name: 'Осирис',
     epithet: 'Зелёный владыка',
     glyph: '𓊹',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/27984489-23f0-452e-b267-62e34903db21.jpg',
     domain: 'Возрождение · Земля',
     bonus: 'Воскрешение: раз в партию Избранный возвращается на поле в своей стартовой локации.',
     penalty: 'После воскрешения вы теряете всё снаряжение и один голос в альянсе.',
@@ -64,6 +69,7 @@ export const gods: God[] = [
     name: 'Исида',
     epithet: 'Крылатая защита',
     glyph: '𓆇',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/3582b305-deab-495a-86ca-f711ce76f2a8.jpg',
     domain: 'Магия · Щит',
     bonus: 'Щит Исиды: накройте союзника — весь урон по нему в этом ходу уходит в ноль.',
     penalty: 'Пока щит активен, вы не можете нападать и не участвуете в дележе трофея.',
@@ -76,6 +82,7 @@ export const gods: God[] = [
     name: 'Баст',
     epithet: 'Хранительница очага',
     glyph: '𓃠',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/933fb174-ed2c-42d3-b755-ee32ab2c533f.jpg',
     domain: 'Защита · Радость',
     bonus: 'Ласка Баст: раз в круг лечите любого Избранного на столе и снимаете с него один штраф.',
     penalty: 'Вы не можете атаковать игрока, которого лечили в этом круге.',
@@ -88,6 +95,7 @@ export const gods: God[] = [
     name: 'Тот',
     epithet: 'Писчая тростинка',
     glyph: '𓅝',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/2383cf49-f013-4563-aeae-6f75d15b1249.jpg',
     domain: 'Знание · Слово',
     bonus: 'Обмен карт Тота: в конце хода меняйте любую карту с любым игроком — даже без его согласия.',
     penalty: 'Ваша рука открыта соседу слева до конца круга.',

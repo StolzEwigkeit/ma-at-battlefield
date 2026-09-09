@@ -22,18 +22,29 @@ const PantheonSection = () => {
               key={god.id}
               type="button"
               onClick={() => setSelected(god)}
-              className="group relative flex flex-col overflow-hidden rounded-sm border border-border bg-card p-7 text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/70 hover:shadow-[0_28px_60px_-38px_hsl(var(--primary))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="group relative flex flex-col overflow-hidden rounded-sm border border-border bg-card text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/70 hover:shadow-[0_28px_60px_-38px_hsl(var(--primary))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              <span
-                className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                style={{ background: 'radial-gradient(circle, hsl(var(--primary) / 0.22) 0%, transparent 65%)' }}
-              />
-              <div className="flex items-start justify-between">
-                <span className="label-mono">{String(i + 1).padStart(2, '0')}</span>
-                <span className="font-display text-3xl leading-none text-primary">{god.glyph}</span>
+              <div className="relative h-52 w-full overflow-hidden">
+                <img
+                  src={god.image}
+                  alt={`Портрет: ${god.name}`}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <span
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/35 to-transparent"
+                  aria-hidden="true"
+                />
+                <span className="label-mono absolute left-5 top-4 text-foreground/80">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="absolute right-5 top-3 font-display text-3xl leading-none text-primary">
+                  {god.glyph}
+                </span>
               </div>
 
-              <h3 className="mt-8 font-sans text-2xl font-extrabold tracking-[-0.02em] text-card-foreground">
+              <div className="flex flex-1 flex-col p-7 pt-3">
+              <h3 className="font-sans text-2xl font-extrabold tracking-[-0.02em] text-card-foreground">
                 {god.name}
               </h3>
               <div className="mt-1 font-display text-lg italic text-muted-foreground">{god.epithet}</div>
@@ -50,6 +61,7 @@ const PantheonSection = () => {
                   <Icon name="ArrowUpRight" size={13} />
                 </span>
               </div>
+              </div>
             </button>
           ))}
         </div>
@@ -60,8 +72,19 @@ const PantheonSection = () => {
           {selected && (
             <>
               <DialogHeader>
+                <div className="relative -mx-6 -mt-6 mb-4 h-56 overflow-hidden">
+                  <img
+                    src={selected.image}
+                    alt={`Портрет: ${selected.name}`}
+                    className="h-full w-full object-cover"
+                  />
+                  <span
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-popover via-popover/20 to-transparent"
+                    aria-hidden="true"
+                  />
+                </div>
                 <div className="mb-3 flex items-center gap-4">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-sm border border-primary/50 bg-primary/10 font-display text-2xl text-primary">
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm border border-primary/50 bg-primary/10 font-display text-2xl text-primary">
                     {selected.glyph}
                   </span>
                   <div>
