@@ -1,19 +1,15 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import SectionHeading from '@/components/SectionHeading';
 import { useToast } from '@/hooks/use-toast';
 import { classes, gods } from '@/data/maat';
-
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-function makeCode() {
-  const bytes = new Uint32Array(6);
-  window.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('');
-}
+import { gameApi, saveSession } from '@/lib/gameApi';
 
 const LobbySection = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
 
   const [nickname, setNickname] = useState('');
   const [seats, setSeats] = useState(4);
@@ -32,15 +28,33 @@ const LobbySection = () => {
     return '';
   }, [nickname]);
 
-  const inviteLink = code ? `${window.location.origin}/#lobby?table=${code}` : '';
+  const inviteLink = code ? `${window.location.origin}/game?code=${code}` : '';
 
-  const createTable = () => {
-    if (nickError) return;
-    setCode(makeCode());
-    toast({
-      title: 'Стол собран',
-      description: 'Код живёт только в этой вкладке. Закроете страницу — стол исчезнет.',
-    });
+  const createTable = async () => {
+    if (nickError || busy) return;
+    setBusy(true);
+    try {
+      const res = await gameApi.create({
+        nickname: nickname.trim() || 'Избранный',
+        seats,
+        godId: god,
+        classId: cls,
+      });
+      setCode(res.code);
+      saveSession({ code: res.code, token: res.token });
+      toast({
+        title: 'Стол собран',
+        description: 'Отправьте код друзьям — и открывайте партию.',
+      });
+    } catch (e) {
+      toast({ title: 'Не вышло собрать стол', description: e instanceof Error ? e.message : '' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openTable = () => {
+    if (code) navigate(`/game?code=${code}`);
   };
 
   const copyLink = async () => {
@@ -53,7 +67,7 @@ const LobbySection = () => {
     }
   };
 
-  const tryJoin = (e: React.FormEvent) => {
+  const tryJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = joinCode.trim().toUpperCase();
     if (!/^[A-Z0-9]{6}$/.test(value)) {
@@ -61,10 +75,21 @@ const LobbySection = () => {
       return;
     }
     setJoinError('');
-    toast({
-      title: `Стол ${value} найден`,
-      description: 'Плейтест закрытый: подключение к чужим столам откроем в ближайшем обновлении.',
-    });
+    setBusy(true);
+    try {
+      const res = await gameApi.join({
+        code: value,
+        nickname: nickname.trim() || 'Избранный',
+        godId: god,
+        classId: cls,
+      });
+      saveSession({ code: value, token: res.token });
+      navigate(`/game?code=${value}`);
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : 'Стол не найден');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -74,7 +99,7 @@ const LobbySection = () => {
         <SectionHeading
           eyebrow="Лобби"
           title="Соберите стол за минуту"
-          description="Без аккаунта, почты и пароля. Код стола создаётся прямо в вашем браузере, имя нигде не сохраняется — закрыли вкладку, и от партии не осталось следа."
+          description="Без аккаунта, почты и пароля. Создайте стол, отправьте код друзьям — и играйте вместе с разных устройств."
         />
 
         <div className="mt-14 grid gap-6 lg:grid-cols-[1.25fr_1fr]">
@@ -167,7 +192,7 @@ const LobbySection = () => {
             <button
               type="button"
               onClick={createTable}
-              disabled={!!nickError}
+              disabled={!!nickError || busy}
               className="mt-8 inline-flex items-center gap-3 rounded-sm bg-primary px-7 py-4 text-[0.78rem] font-medium uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {code ? 'Пересобрать стол' : 'Создать стол'}
@@ -179,6 +204,14 @@ const LobbySection = () => {
                 <div className="label-mono">Код стола</div>
                 <div className="mt-2 font-sans text-3xl font-extrabold tracking-[0.3em] text-foreground">{code}</div>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={openTable}
+                    className="inline-flex items-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-[0.72rem] uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5"
+                  >
+                    <Icon name="Play" size={14} />
+                    Открыть стол
+                  </button>
                   <button
                     type="button"
                     onClick={copyLink}
@@ -218,7 +251,8 @@ const LobbySection = () => {
               {joinError && <p className="mt-2 text-[0.75rem] text-destructive">{joinError}</p>}
               <button
                 type="submit"
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm border border-primary px-5 py-3 text-[0.72rem] uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                disabled={busy}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm border border-primary px-5 py-3 text-[0.72rem] uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
               >
                 Сесть за стол
                 <Icon name="ArrowRight" size={14} />
@@ -234,8 +268,8 @@ const LobbySection = () => {
                 {[
                   'Ни регистрации, ни почты, ни пароля.',
                   'Персональные данные не собираются и не хранятся.',
-                  'Код стола генерируется в вашем браузере.',
-                  'Имя живёт в памяти вкладки и стирается при закрытии.',
+                  'Код стола — шесть символов, ничего личного в нём нет.',
+                  'Имя видно только соседям по столу и живёт до конца партии.',
                   'Никаких рекламных трекеров и профилирования.',
                 ].map((t) => (
                   <li key={t} className="flex gap-3 text-[0.82rem] leading-relaxed text-muted-foreground">

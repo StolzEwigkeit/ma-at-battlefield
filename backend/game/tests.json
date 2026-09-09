@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "CORS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Создание стола",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "create",
+        "nickname": "Тестовый Избранный",
+        "seats": 4,
+        "godId": "ra",
+        "classId": "vizier"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "code": "string",
+        "token": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Несуществующий стол",
+      "method": "GET",
+      "path": "/?action=state&code=ZZZZZZ",
+      "expectedStatus": 404,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
