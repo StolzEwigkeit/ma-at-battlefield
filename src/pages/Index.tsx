@@ -8,6 +8,7 @@ import RulesSection from '@/components/RulesSection';
 import DragonsSection from '@/components/DragonsSection';
 import LobbySection from '@/components/LobbySection';
 import RankingSection from '@/components/RankingSection';
+import CallToActionSection from '@/components/CallToActionSection';
 import Footer from '@/components/Footer';
 
 const Index = () => {
@@ -24,6 +25,7 @@ const Index = () => {
         <DragonsSection />
         <LobbySection />
         <RankingSection />
+        <CallToActionSection />
       </main>
       <Footer />
     </div>
