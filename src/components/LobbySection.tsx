@@ -17,6 +17,7 @@ const LobbySection = () => {
   const [cls, setCls] = useState(classes[0].id);
   const [code, setCode] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState('normal');
+  const [mode, setMode] = useState<'solo' | 'friends'>('solo');
 
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
@@ -125,7 +126,43 @@ const LobbySection = () => {
 
         <div className="mt-14 grid gap-6 lg:grid-cols-[1.25fr_1fr]">
           <div className="rounded-sm border border-border bg-card p-7 md:p-9">
-            <div className="label-mono mb-6">Новый стол</div>
+            <div className="label-mono mb-4">С кем играем</div>
+
+            <div className="mb-7 grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  id: 'solo' as const,
+                  name: 'С компьютером',
+                  icon: 'Bot',
+                  hint: 'Партия начнётся сразу — свободные места займут соперники-боты.',
+                },
+                {
+                  id: 'friends' as const,
+                  name: 'С друзьями по ссылке',
+                  icon: 'Users',
+                  hint: 'Получите код стола и отправьте его друзьям. Старт — когда все сядут.',
+                },
+              ].map((m) => {
+                const isActive = mode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMode(m.id)}
+                    aria-pressed={isActive}
+                    className={`rounded-sm border p-5 text-left transition-colors ${
+                      isActive ? 'border-primary bg-primary/10' : 'border-border bg-background hover:border-primary/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Icon name={m.icon} size={17} className="text-primary" />
+                      <span className="font-sans text-[0.95rem] font-semibold text-foreground">{m.name}</span>
+                    </div>
+                    <p className="mt-2 text-[0.75rem] leading-relaxed text-muted-foreground">{m.hint}</p>
+                  </button>
+                );
+              })}
+            </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
@@ -189,7 +226,11 @@ const LobbySection = () => {
               </div>
 
               <div className="md:col-span-2">
-                <div className="label-mono mb-3">Мест за столом: {seats}</div>
+                <div className="label-mono mb-3">
+                  {mode === 'solo'
+                    ? `Мест за столом: ${seats} · соперников ${Math.max(1, seats - 1)}`
+                    : `Мест за столом: ${seats}`}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {[2, 3, 4, 5, 6, 7].map((n) => (
                     <button
@@ -213,26 +254,22 @@ const LobbySection = () => {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={createTable}
+                onClick={mode === 'solo' ? startSolo : createTable}
                 disabled={!!nickError || busy}
                 className="inline-flex items-center gap-3 rounded-sm bg-primary px-7 py-4 text-[0.78rem] font-medium uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {code ? 'Пересобрать стол' : 'Создать стол'}
-                <Icon name="Dices" size={16} />
+                {mode === 'solo' ? 'Начать партию' : code ? 'Пересобрать стол' : 'Создать стол'}
+                <Icon name={mode === 'solo' ? 'Play' : 'Dices'} size={16} />
               </button>
 
-              <button
-                type="button"
-                onClick={startSolo}
-                disabled={!!nickError || busy}
-                className="inline-flex items-center gap-3 rounded-sm border border-primary px-6 py-4 text-[0.78rem] font-medium uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Играть одному
-                <Icon name="Bot" size={16} />
-              </button>
+              {mode === 'friends' && (
+                <span className="text-[0.75rem] text-muted-foreground">
+                  После создания появится код — отправьте его друзьям.
+                </span>
+              )}
             </div>
 
-            <div className="mt-6 border-t border-border pt-6">
+            <div className={`mt-6 border-t border-border pt-6 ${mode === 'solo' ? '' : 'hidden'}`}>
               <div className="label-mono mb-3">Характер соперников</div>
               <div className="grid gap-2.5 sm:grid-cols-3">
                 {[
@@ -283,7 +320,7 @@ const LobbySection = () => {
               </p>
             </div>
 
-            {code && (
+            {code && mode === 'friends' && (
               <div className="mt-8 animate-fade-in rounded-sm border border-primary/50 bg-primary/10 p-6">
                 <div className="label-mono">Код стола</div>
                 <div className="mt-2 font-sans text-3xl font-extrabold tracking-[0.3em] text-foreground">{code}</div>
