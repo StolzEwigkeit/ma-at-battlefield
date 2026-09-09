@@ -10,6 +10,7 @@ from rules import (
     BOARD, BOARD_SIZE, CLASS_NAMES, DRAGON_NAMES, GOD_NAMES,
     advance, combat_power, move_steps, resolve_tile, tile, victory_check,
 )
+from cards import can_play, card_info, card_kind, draw_card
 
 CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -47,6 +48,16 @@ def err(message: str, status: int = 400) -> dict:
     return ok({'error': message}, status)
 
 
+def give_card(cur, table_id: int, player_id: int, round_num: int, kind: str = '') -> dict:
+    card = draw_card(kind)
+    cur.execute(
+        f"INSERT INTO player_cards (table_id, player_id, card_id, kind, drawn_round) "
+        f"VALUES ({table_id}, {player_id}, {esc(card['id'])}, {esc(card_kind(card['id']))}, {round_num})"
+    )
+    cur.execute(f"UPDATE players SET cards = cards + 1 WHERE id = {player_id}")
+    return card
+
+
 def log(cur, table_id: int, round_num: int, kind: str, text: str):
     cur.execute(
         f"INSERT INTO game_log (table_id, round_num, kind, text) "
@@ -79,6 +90,22 @@ def fetch_state(cur, code: str, token: str = '') -> dict:
 
     me = next((p for p in players if p['token'] == token), None)
 
+    hand = []
+    if me:
+        cur.execute(
+            f"SELECT * FROM player_cards WHERE player_id = {me['id']} AND status = 'hand' ORDER BY id"
+        )
+        for row in cur.fetchall():
+            info = card_info(row['card_id'])
+            hand.append({
+                'id': row['id'],
+                'cardId': row['card_id'],
+                'kind': row['kind'],
+                'name': info.get('name', ''),
+                'text': info.get('text', ''),
+                'requirement': info.get('requirement', 'any'),
+            })
+
     return {
         'table': {
             'code': t['code'], 'seats': t['seats'], 'status': t['status'],
@@ -103,6 +130,7 @@ def fetch_state(cur, code: str, token: str = '') -> dict:
         'log': [{'id': r['id'], 'round': r['round_num'], 'kind': r['kind'], 'text': r['text']} for r in reversed(logs)],
         'currentPlayerId': current['id'] if current else None,
         'me': {'id': me['id'], 'isHost': me['is_host']} if me else None,
+        'hand': hand,
     }
 
 
@@ -213,7 +241,13 @@ def handler(event: dict, context) -> dict:
                 f"UPDATE tables SET status = 'playing', turn_index = 0, round_num = 1, updated_at = NOW() "
                 f"WHERE id = {table_id}"
             )
-            log(cur, table_id, 1, 'system', 'Партия началась. Круг первый.')
+            cur.execute(f"SELECT id, class_id FROM players WHERE table_id = {table_id} ORDER BY seat_index")
+            for row in cur.fetchall():
+                cur.execute(f"UPDATE players SET cards = 0 WHERE id = {row['id']}")
+                hand_size = 2 if row['class_id'] == 'scribe' else 3
+                for _ in range(hand_size):
+                    give_card(cur, table_id, row['id'], 1)
+            log(cur, table_id, 1, 'system', 'Партия началась. Круг первый. Каждый получил стартовую руку.')
             return ok(fetch_state(cur, code, token))
 
         if table['status'] != 'playing':
@@ -245,15 +279,20 @@ def handler(event: dict, context) -> dict:
 
             health = max(0, min(12, player['health'] + effect['health_delta']))
             feathers = max(0, player['feathers'] + effect['feathers_delta'])
-            cards = max(0, player['cards'] + effect['cards_delta'])
             is_out = health <= 0
 
             cur.execute(
                 f"UPDATE players SET position = {player['position']}, health = {health}, "
-                f"feathers = {feathers}, cards = {cards}, is_out = {'TRUE' if is_out else 'FALSE'} "
+                f"feathers = {feathers}, is_out = {'TRUE' if is_out else 'FALSE'} "
                 f"WHERE id = {me['id']}"
             )
             log(cur, table_id, table['round_num'], effect['kind'], effect['text'])
+
+            if effect['cards_delta'] > 0 and not is_out:
+                for _ in range(effect['cards_delta']):
+                    drawn = give_card(cur, table_id, me['id'], table['round_num'])
+                    log(cur, table_id, table['round_num'], 'card',
+                        f"{me['nickname']} тянет карту: «{drawn['name']}».")
             if effect['dragon']:
                 log(cur, table_id, table['round_num'], 'dragon',
                     f"Роль дракона по отношениям с богом {GOD_NAMES.get(me['god_id'], '')}: {DRAGON_NAMES[effect['dragon']]}.")
@@ -312,8 +351,11 @@ def handler(event: dict, context) -> dict:
                 cur.execute(f"UPDATE players SET health = LEAST(12, health + 3) WHERE id = {me['id']}")
                 text = f"{me['nickname']} усиливает бонус бога: +3 здоровья."
             elif me['class_id'] == 'scribe':
-                cur.execute(f"UPDATE players SET cards = cards + 2, feathers = feathers + 1 WHERE id = {me['id']}")
-                text = f"{me['nickname']} правит протокол: +2 карты, +1 перо."
+                names = []
+                for _ in range(2):
+                    names.append(give_card(cur, table_id, me['id'], table['round_num'])['name'])
+                cur.execute(f"UPDATE players SET feathers = feathers + 1 WHERE id = {me['id']}")
+                text = f"{me['nickname']} правит протокол: берёт «{names[0]}» и «{names[1]}», +1 перо."
             else:
                 target_id = int(body.get('targetId') or 0)
                 cur.execute(f"SELECT * FROM players WHERE id = {target_id} AND table_id = {table_id}")
@@ -328,6 +370,97 @@ def handler(event: dict, context) -> dict:
 
             cur.execute(f"UPDATE players SET ability_used = TRUE WHERE id = {me['id']}")
             log(cur, table_id, table['round_num'], 'ability', text)
+            return ok(fetch_state(cur, code, token))
+
+        if action == 'play_card':
+            if not current or current['id'] != me['id']:
+                return err('Карту можно разыграть только в свой ход')
+            hand_id = int(body.get('handId') or 0)
+            cur.execute(
+                f"SELECT * FROM player_cards WHERE id = {hand_id} AND player_id = {me['id']} AND status = 'hand'"
+            )
+            row = cur.fetchone()
+            if not row:
+                return err('Карты нет на руке')
+
+            card = card_info(row['card_id'])
+            cur.execute(
+                f"SELECT COUNT(*) AS n FROM alliances WHERE table_id = {table_id} AND status = 'active' "
+                f"AND (from_player_id = {me['id']} OR to_player_id = {me['id']})"
+            )
+            alliance_count = cur.fetchone()['n']
+            tile_type = tile(me['position'])['type']
+
+            allowed, reason = can_play(card, tile_type, alliance_count)
+            if not allowed:
+                return err(reason)
+
+            position = me['position']
+            if card.get('move'):
+                position = advance(position, card['move'])
+
+            health = max(0, min(12, me['health'] + card.get('reward_health', 0)))
+            feathers = max(0, me['feathers'] + card.get('reward_feathers', 0))
+            is_out = health <= 0
+
+            if card.get('attack_bonus'):
+                target_id = int(body.get('targetId') or 0)
+                cur.execute(f"SELECT * FROM players WHERE id = {target_id} AND table_id = {table_id} AND is_out = FALSE")
+                target = cur.fetchone()
+                if not target or target['id'] == me['id']:
+                    return err('Для этой карты нужна цель атаки')
+                mine = combat_power(dict(me)) + card['attack_bonus']
+                theirs = combat_power(dict(target))
+                if mine >= theirs:
+                    target_health = max(0, target['health'] - 4)
+                    cur.execute(
+                        f"UPDATE players SET health = {target_health}, "
+                        f"is_out = {'TRUE' if target_health <= 0 else 'FALSE'} WHERE id = {target['id']}"
+                    )
+                    feathers += 2
+                    log(cur, table_id, table['round_num'], 'card',
+                        f"{me['nickname']} бьёт «{card['name']}» ({mine} против {theirs}): {target['nickname']} теряет 4 здоровья.")
+                else:
+                    health = max(0, health - 2)
+                    is_out = health <= 0
+                    log(cur, table_id, table['round_num'], 'card',
+                        f"{me['nickname']} бьёт «{card['name']}» ({mine} против {theirs}) и получает отпор: −2 здоровья.")
+
+            cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {hand_id}")
+            cur.execute(
+                f"UPDATE players SET position = {position}, health = {health}, feathers = {feathers}, "
+                f"cards = GREATEST(0, cards - 1), is_out = {'TRUE' if is_out else 'FALSE'} WHERE id = {me['id']}"
+            )
+
+            parts = []
+            if card.get('reward_feathers'):
+                parts.append(f"+{card['reward_feathers']} пера")
+            if card.get('reward_health'):
+                sign = '+' if card['reward_health'] > 0 else ''
+                parts.append(f"{sign}{card['reward_health']} здоровья")
+            if card.get('move'):
+                parts.append(f"фишка идёт на «{tile(position)['name']}»")
+            tail = (': ' + ', '.join(parts)) if parts else '.'
+            log(cur, table_id, table['round_num'], 'card',
+                f"{me['nickname']} разыгрывает «{card['name']}»{tail}")
+
+            draws = card.get('draw', 0) + (1 if card.get('reward_card') else 0)
+            for _ in range(draws):
+                drawn = give_card(cur, table_id, me['id'], table['round_num'])
+                log(cur, table_id, table['round_num'], 'card',
+                    f"{me['nickname']} добирает карту: «{drawn['name']}».")
+
+            if is_out:
+                log(cur, table_id, table['round_num'], 'system', f"{me['nickname']} выбывает из партии.")
+
+            cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} ORDER BY seat_index")
+            players_after = [dict(p) for p in cur.fetchall()]
+            win = victory_check(players_after)
+            if win:
+                winner = next(p for p in players_after if p['id'] == win['winner_id'])
+                cur.execute(f"UPDATE tables SET status = 'finished', updated_at = NOW() WHERE id = {table_id}")
+                log(cur, table_id, table['round_num'], 'victory', f"Победа: {winner['nickname']}. {win['reason']}.")
+
             return ok(fetch_state(cur, code, token))
 
         if action == 'ally':

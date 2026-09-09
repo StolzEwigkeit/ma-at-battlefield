@@ -13,6 +13,7 @@ const kindIcon: Record<string, string> = {
   alliance: 'Handshake',
   betrayal: 'HeartCrack',
   ability: 'Sparkles',
+  card: 'Layers',
   victory: 'Trophy',
   system: 'Info',
 };

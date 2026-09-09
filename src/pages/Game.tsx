@@ -5,6 +5,7 @@ import GameBoard from '@/components/game/GameBoard';
 import PlayerList from '@/components/game/PlayerList';
 import GameLog from '@/components/game/GameLog';
 import ActionPanel from '@/components/game/ActionPanel';
+import HandCards from '@/components/game/HandCards';
 import { useToast } from '@/hooks/use-toast';
 import { clearSession, gameApi, loadSession, saveSession, type GameState } from '@/lib/gameApi';
 
@@ -16,7 +17,10 @@ const Game = () => {
   const urlCode = (params.get('code') || '').toUpperCase();
   const stored = loadSession();
   const [code] = useState(urlCode || stored?.code || '');
-  const [token, setToken] = useState(stored && stored.code === (urlCode || stored.code) ? stored.token : '');
+  const urlToken = params.get('token') || '';
+  const [token, setToken] = useState(
+    urlToken || (stored && stored.code === (urlCode || stored.code) ? stored.token : ''),
+  );
 
   const [state, setState] = useState<GameState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -202,6 +206,20 @@ const Game = () => {
                 }}
                 onAccept={(id) => act(() => gameApi.accept(code, token, id))}
                 onBetray={(id) => act(() => gameApi.betray(code, token, id))}
+              />
+
+              <HandCards
+                hand={state.hand ?? []}
+                busy={busy}
+                myTurn={state.table.status === 'playing' && !!me && state.currentPlayerId === me.id && !me.isOut}
+                currentTileType={state.board.find((t) => t.id === me?.position)?.type ?? ''}
+                hasAlliance={state.alliances.some(
+                  (a) => a.status === 'active' && (a.from === me?.id || a.to === me?.id),
+                )}
+                onPlay={(card) => {
+                  const target = state.players.find((p) => p.id !== me?.id && !p.isOut);
+                  return act(() => gameApi.playCard(code, token, card.id, target?.id));
+                }}
               />
 
               <div>

@@ -30,6 +30,15 @@ export type GameAlliance = {
 
 export type GameLogEntry = { id: number; round: number; kind: string; text: string };
 
+export type HandCard = {
+  id: number;
+  cardId: string;
+  kind: 'quest' | 'gear';
+  name: string;
+  text: string;
+  requirement: string;
+};
+
 export type GameState = {
   table: { code: string; seats: number; status: 'lobby' | 'playing' | 'finished'; round: number };
   board: { id: number; name: string; type: string }[];
@@ -38,6 +47,7 @@ export type GameState = {
   log: GameLogEntry[];
   currentPlayerId: number | null;
   me: { id: number; isHost: boolean } | null;
+  hand: HandCard[];
 };
 
 async function call<T>(payload: Record<string, unknown>, token?: string): Promise<T> {
@@ -79,6 +89,8 @@ export const gameApi = {
     call<GameState>({ action: 'accept', code, allianceId }, token),
   betray: (code: string, token: string, allianceId: number) =>
     call<GameState>({ action: 'betray', code, allianceId }, token),
+  playCard: (code: string, token: string, handId: number, targetId?: number) =>
+    call<GameState>({ action: 'play_card', code, handId, targetId }, token),
 };
 
 export const TABLE_STORAGE_KEY = 'maat-table';
