@@ -3,12 +3,32 @@ import Icon from '@/components/ui/icon';
 import SectionHeading from '@/components/SectionHeading';
 import { boardTiles } from '@/data/maat';
 
-const typeMeta: Record<string, { icon: string; hint: string }> = {
-  храм: { icon: 'Landmark', hint: 'Территория бога' },
-  логово: { icon: 'Mountain', hint: 'Дракон выбирает роль' },
-  рынок: { icon: 'ArrowLeftRight', hint: 'Обмен и сделки' },
-  весы: { icon: 'Scale', hint: 'Взвешивание спора' },
-  пустыня: { icon: 'Wind', hint: 'Движение и риск' },
+const typeMeta: Record<string, { icon: string; hint: string; image: string }> = {
+  храм: {
+    icon: 'Landmark',
+    hint: 'Территория бога',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/696fa32f-6490-4d0f-9a2e-a91a60a4b4f3.jpg',
+  },
+  логово: {
+    icon: 'Mountain',
+    hint: 'Дракон выбирает роль',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/20c11e69-5beb-4aac-b2f5-ff65fe29987b.jpg',
+  },
+  рынок: {
+    icon: 'ArrowLeftRight',
+    hint: 'Обмен и сделки',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/66d7d9a7-a1d4-4f9e-9189-b8bc0f3426ad.jpg',
+  },
+  весы: {
+    icon: 'Scale',
+    hint: 'Взвешивание спора',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/f3efa32f-c20d-4623-b511-4affc62dcf0e.jpg',
+  },
+  пустыня: {
+    icon: 'Wind',
+    hint: 'Движение и риск',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/818145b5-7a4e-4b3e-a405-20c92c1f08ed.jpg',
+  },
 };
 
 const tokenColors = [
@@ -48,13 +68,26 @@ const BoardSection = () => {
                   type="button"
                   onClick={() => setActive(t.id)}
                   aria-pressed={isActive}
-                  className={`group relative flex min-h-[124px] flex-col justify-between rounded-sm border p-4 text-left transition-all duration-200 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`group relative flex min-h-[124px] flex-col justify-between overflow-hidden rounded-sm border p-4 text-left transition-all duration-200 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     isActive
                       ? 'border-primary bg-primary/10 shadow-[0_16px_40px_-24px_hsl(var(--primary))]'
                       : 'border-border bg-card hover:border-primary/50'
                   }`}
                 >
-                  <div className="flex items-start justify-between">
+                  <img
+                    src={meta.image}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-all duration-300 ${
+                      isActive ? 'opacity-40 scale-105' : 'opacity-20 group-hover:opacity-35'
+                    }`}
+                  />
+                  <span
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/75 to-card/40"
+                    aria-hidden="true"
+                  />
+                  <div className="relative flex items-start justify-between">
                     <span className="label-mono">{String(t.id).padStart(2, '0')}</span>
                     <Icon
                       name={meta.icon}
@@ -62,7 +95,7 @@ const BoardSection = () => {
                       className={isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}
                     />
                   </div>
-                  <div>
+                  <div className="relative">
                     <div className="font-sans text-[0.92rem] font-semibold leading-tight text-card-foreground">
                       {t.name}
                     </div>
@@ -77,7 +110,21 @@ const BoardSection = () => {
           </div>
 
           <div className="flex flex-col gap-5">
-            <div className="rounded-sm border border-border bg-card p-6">
+            <div className="overflow-hidden rounded-sm border border-border bg-card">
+              <div className="relative h-48 w-full overflow-hidden">
+                <img
+                  key={tile.type}
+                  src={typeMeta[tile.type].image}
+                  alt={`Клетка типа «${tile.type}»`}
+                  loading="lazy"
+                  className="h-full w-full animate-fade-in object-cover"
+                />
+                <span
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent"
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="p-6 pt-4">
               <div className="label-mono">Клетка {String(tile.id).padStart(2, '0')}</div>
               <h3 className="mt-2 font-sans text-xl font-bold text-card-foreground">{tile.name}</h3>
               <div className="mt-3 inline-flex items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
@@ -87,6 +134,7 @@ const BoardSection = () => {
               <p key={tile.id} className="mt-5 animate-fade-in text-[0.88rem] leading-relaxed text-muted-foreground">
                 {tile.note}
               </p>
+              </div>
             </div>
 
             <div className="rounded-sm border border-border bg-card p-6">
