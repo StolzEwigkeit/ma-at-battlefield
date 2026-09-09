@@ -32,7 +32,15 @@ const ClassesSection = () => {
                       : 'border-border bg-card text-card-foreground hover:border-primary/60'
                   }`}
                 >
-                  <Icon name={c.icon} size={18} className={isActive ? '' : 'text-primary'} />
+                  <img
+                    src={c.image}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    className={`h-11 w-11 shrink-0 rounded-sm border object-cover transition-opacity ${
+                      isActive ? 'border-primary-foreground/40' : 'border-border opacity-80'
+                    }`}
+                  />
                   <span>
                     <span className="block font-sans text-[0.95rem] font-semibold">{c.name}</span>
                     <span
@@ -48,7 +56,20 @@ const ClassesSection = () => {
             })}
           </div>
 
-          <div key={current.id} className="animate-fade-in rounded-sm border border-border bg-card p-8 md:p-10">
+          <div key={current.id} className="animate-fade-in overflow-hidden rounded-sm border border-border bg-card">
+            <div className="relative h-56 w-full overflow-hidden md:h-72">
+              <img
+                src={current.image}
+                alt={`Класс: ${current.name}`}
+                className="h-full w-full object-cover object-top"
+              />
+              <span
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent"
+                aria-hidden="true"
+              />
+            </div>
+
+            <div className="p-8 pt-5 md:p-10 md:pt-6">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <div className="label-mono">{current.role}</div>
@@ -97,6 +118,7 @@ const ClassesSection = () => {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
           </div>
         </div>

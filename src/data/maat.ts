@@ -110,6 +110,7 @@ export type PlayerClass = {
   name: string;
   role: string;
   icon: string;
+  image: string;
   strength: string;
   weakness: string;
   description: string;
@@ -122,6 +123,7 @@ export const classes: PlayerClass[] = [
     name: 'Визирь',
     role: 'Переговорщик',
     icon: 'Handshake',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/13e6c2b7-3e6a-45ad-bb84-48951f75a625.jpg',
     strength: 'Заключает союз без согласия второй стороны один раз за партию.',
     weakness: 'Слабейший в прямом бою: −1 к атаке всегда.',
     description:
@@ -137,6 +139,7 @@ export const classes: PlayerClass[] = [
     name: 'Воин',
     role: 'Ударная фигура',
     icon: 'Swords',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/f8ec8b03-71ac-492d-8021-b79a698706b1.jpg',
     strength: 'Две атаки за ход и право войти в логово дракона без броска.',
     weakness: 'Не может отказаться от вызова на бой.',
     description:
@@ -152,6 +155,7 @@ export const classes: PlayerClass[] = [
     name: 'Жрец',
     role: 'Проводник бога',
     icon: 'Flame',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/c5823375-7c02-4cbe-a491-3ff18d6b94a7.jpg',
     strength: 'Усиливает бонус своего бога вдвое на один ход за партию.',
     weakness: 'Штраф бога действует на него постоянно, без пауз.',
     description:
@@ -167,6 +171,7 @@ export const classes: PlayerClass[] = [
     name: 'Писец',
     role: 'Хранитель записи',
     icon: 'ScrollText',
+    image: 'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/d21bbb5c-47c5-4f6a-b5ff-39cb41c8c003.jpg',
     strength: 'Видит верхнюю карту колоды заданий и может подменить её результат.',
     weakness: 'Держит на руке на одну карту снаряжения меньше остальных.',
     description:
