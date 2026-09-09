@@ -17,6 +17,7 @@ export type GamePlayer = {
   isHost: boolean;
   isOut: boolean;
   abilityUsed: boolean;
+  isBot: boolean;
 };
 
 export type GameAlliance = {
@@ -67,6 +68,9 @@ async function call<T>(payload: Record<string, unknown>, token?: string): Promis
 export const gameApi = {
   create: (payload: { nickname: string; seats: number; godId: string; classId: string }) =>
     call<{ code: string; token: string }>({ action: 'create', ...payload }),
+
+  createSolo: (payload: { nickname: string; bots: number; godId: string; classId: string }) =>
+    call<{ code: string; token: string }>({ action: 'create_solo', ...payload }),
 
   join: (payload: { code: string; nickname: string; godId: string; classId: string }) =>
     call<{ code: string; token: string; state: GameState }>({ action: 'join', ...payload }),

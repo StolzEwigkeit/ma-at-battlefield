@@ -45,6 +45,7 @@ const PlayerList = ({ players, currentPlayerId, meId, alliances, onAlly, busy, p
                     {p.nickname}
                   </span>
                   {isMe && <span className="label-mono text-primary">вы</span>}
+                  {p.isBot && <Icon name="Bot" size={13} className="shrink-0 text-muted-foreground" />}
                   {p.isHost && <Icon name="Crown" size={13} className="shrink-0 text-primary" />}
                 </div>
                 <div className="label-mono mt-0.5 truncate">

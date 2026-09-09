@@ -57,6 +57,25 @@ const LobbySection = () => {
     if (code) navigate(`/game?code=${code}`);
   };
 
+  const startSolo = async () => {
+    if (nickError || busy) return;
+    setBusy(true);
+    try {
+      const res = await gameApi.createSolo({
+        nickname: nickname.trim() || 'Избранный',
+        bots: Math.max(1, seats - 1),
+        godId: god,
+        classId: cls,
+      });
+      saveSession({ code: res.code, token: res.token });
+      navigate(`/game?code=${res.code}`);
+    } catch (e) {
+      toast({ title: 'Не вышло начать партию', description: e instanceof Error ? e.message : '' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const copyLink = async () => {
     if (!inviteLink) return;
     try {
@@ -99,7 +118,7 @@ const LobbySection = () => {
         <SectionHeading
           eyebrow="Лобби"
           title="Соберите стол за минуту"
-          description="Без аккаунта, почты и пароля. Создайте стол, отправьте код друзьям — и играйте вместе с разных устройств."
+          description="Без аккаунта, почты и пароля. Создайте стол и отправьте код друзьям — или начните партию прямо сейчас против соперников под управлением компьютера."
         />
 
         <div className="mt-14 grid gap-6 lg:grid-cols-[1.25fr_1fr]">
@@ -189,15 +208,32 @@ const LobbySection = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={createTable}
-              disabled={!!nickError || busy}
-              className="mt-8 inline-flex items-center gap-3 rounded-sm bg-primary px-7 py-4 text-[0.78rem] font-medium uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {code ? 'Пересобрать стол' : 'Создать стол'}
-              <Icon name="Dices" size={16} />
-            </button>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={createTable}
+                disabled={!!nickError || busy}
+                className="inline-flex items-center gap-3 rounded-sm bg-primary px-7 py-4 text-[0.78rem] font-medium uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {code ? 'Пересобрать стол' : 'Создать стол'}
+                <Icon name="Dices" size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={startSolo}
+                disabled={!!nickError || busy}
+                className="inline-flex items-center gap-3 rounded-sm border border-primary px-6 py-4 text-[0.78rem] font-medium uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Играть одному
+                <Icon name="Bot" size={16} />
+              </button>
+            </div>
+
+            <p className="mt-3 text-[0.75rem] leading-relaxed text-muted-foreground">
+              Одиночная партия начнётся сразу: остальные {Math.max(1, seats - 1)} мест займут соперники под управлением
+              компьютера.
+            </p>
 
             {code && (
               <div className="mt-8 animate-fade-in rounded-sm border border-primary/50 bg-primary/10 p-6">
