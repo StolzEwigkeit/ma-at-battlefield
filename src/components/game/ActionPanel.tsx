@@ -22,7 +22,8 @@ type Props = {
 
 const ActionPanel = ({ state, me, busy, onMove, onSkip, onAbility, onAccept, onBetray, onStart }: Props) => {
   const playing = state.table.status === 'playing';
-  const myTurn = playing && me && state.currentPlayerId === me.id && !me.isOut;
+  const overflow = Math.max(0, (state.hand?.length ?? 0) - (state.handLimit ?? 7));
+  const myTurn = playing && me && state.currentPlayerId === me.id && !me.isOut && overflow === 0;
 
   const incoming = state.alliances.filter((a: GameAlliance) => a.status === 'pending' && a.to === me?.id);
   const active = state.alliances.filter(
@@ -55,11 +56,18 @@ const ActionPanel = ({ state, me, busy, onMove, onSkip, onAbility, onAccept, onB
         <>
           <div className="label-mono">
             Круг {state.table.round} ·{' '}
-            {myTurn ? 'ваш ход' : `ходит ${state.players.find((p) => p.id === state.currentPlayerId)?.nickname ?? '—'}`}
+            {me && state.currentPlayerId === me.id && !me.isOut
+              ? 'ваш ход'
+              : `ходит ${state.players.find((p) => p.id === state.currentPlayerId)?.nickname ?? '—'}`}
           </div>
           <div className="mt-2 text-[0.78rem] text-muted-foreground">
             До победы: {Math.max(0, (state.victoryFeathers ?? 20) - (me?.feathers ?? 0))} перьев
           </div>
+          {overflow > 0 && (
+            <div className="mt-3 rounded-sm border border-destructive/50 bg-destructive/10 px-4 py-3 text-[0.78rem] text-foreground">
+              Ход заблокирован: сбросьте {overflow} {overflow === 1 ? 'карту' : 'карты'} с руки.
+            </div>
+          )}
 
           <div className="mt-5 grid gap-2.5">
             <button

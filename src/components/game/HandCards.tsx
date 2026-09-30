@@ -32,6 +32,7 @@ type Props = {
   hasAlliance: boolean;
   myHealth: number;
   onPlay: (card: HandCard, targetId?: number) => void;
+  onDiscard: (card: HandCard) => void;
 };
 
 const HandCards = ({
@@ -45,10 +46,12 @@ const HandCards = ({
   hasAlliance,
   myHealth,
   onPlay,
+  onDiscard,
 }: Props) => {
   const [picking, setPicking] = useState<number | null>(null);
 
   const targets = players.filter((p) => p.id !== meId && !p.isOut);
+  const overflow = Math.max(0, hand.length - handLimit);
 
   const playable = (card: HandCard) => {
     if (card.requirement === 'any') return true;
@@ -74,10 +77,19 @@ const HandCards = ({
     <div className="rounded-sm border border-border bg-card p-6">
       <div className="label-mono mb-4 flex items-center justify-between">
         <span>Ваша рука</span>
-        <span className={hand.length >= handLimit ? 'text-destructive' : ''}>
+        <span className={overflow > 0 ? 'text-destructive' : hand.length >= handLimit ? 'text-primary' : ''}>
           {hand.length} / {handLimit}
         </span>
       </div>
+
+      {overflow > 0 && (
+        <div className="mb-4 flex items-start gap-3 rounded-sm border border-destructive/50 bg-destructive/10 p-4">
+          <Icon name="TriangleAlert" size={16} className="mt-0.5 shrink-0 text-destructive" />
+          <p className="text-[0.79rem] leading-relaxed text-foreground">
+            Перебор на {overflow} {overflow === 1 ? 'карту' : 'карты'}. Сбросьте лишнее — иначе ход недоступен.
+          </p>
+        </div>
+      )}
 
       {hand.length === 0 ? (
         <p className="text-[0.82rem] leading-relaxed text-muted-foreground">
@@ -93,7 +105,11 @@ const HandCards = ({
               <div
                 key={card.id}
                 className={`rounded-sm border p-4 transition-colors ${
-                  ok && myTurn ? 'border-primary/60 bg-primary/5' : 'border-border bg-background'
+                  overflow > 0
+                    ? 'border-border bg-background'
+                    : ok && myTurn
+                      ? 'border-primary/60 bg-primary/5'
+                      : 'border-border bg-background'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -108,18 +124,38 @@ const HandCards = ({
 
                 <p className="mt-3 text-[0.79rem] leading-relaxed text-muted-foreground">{card.text}</p>
 
-                <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="mt-3 flex items-end justify-between gap-3">
                   <span className={`label-mono ${ok ? 'text-primary' : ''}`}>
                     {reqLabel[card.requirement] ?? card.requirement}
                   </span>
-                  <button
-                    type="button"
-                    disabled={!myTurn || !ok || busy || (card.needsTarget && targets.length === 0)}
-                    onClick={() => handle(card)}
-                    className="shrink-0 rounded-sm bg-primary px-4 py-1.5 text-[0.66rem] uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isPicking ? 'Выберите цель' : card.needsTarget ? 'Применить' : 'Разыграть'}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      title="Сбросить карту"
+                      aria-label={`Сбросить «${card.name}»`}
+                      onClick={() => {
+                        setPicking(null);
+                        onDiscard(card);
+                      }}
+                      className={`inline-flex h-[26px] items-center gap-1.5 rounded-sm border px-2.5 text-[0.66rem] uppercase tracking-[0.12em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                        overflow > 0
+                          ? 'border-destructive bg-destructive/15 text-destructive hover:bg-destructive hover:text-primary-foreground'
+                          : 'border-border text-muted-foreground hover:border-destructive hover:text-destructive'
+                      }`}
+                    >
+                      <Icon name="Trash2" size={12} />
+                      Сброс
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!myTurn || !ok || busy || overflow > 0 || (card.needsTarget && targets.length === 0)}
+                      onClick={() => handle(card)}
+                      className="h-[26px] rounded-sm bg-primary px-4 text-[0.66rem] uppercase tracking-[0.14em] text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isPicking ? 'Выберите цель' : card.needsTarget ? 'Применить' : 'Разыграть'}
+                    </button>
+                  </div>
                 </div>
 
                 {isPicking && (

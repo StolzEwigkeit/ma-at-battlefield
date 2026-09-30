@@ -246,6 +246,7 @@ const Game = () => {
                   (a) => a.status === 'active' && (a.from === me?.id || a.to === me?.id),
                 )}
                 onPlay={(card, targetId) => act(() => gameApi.playCard(code, token, card.id, targetId))}
+                onDiscard={(card) => act(() => gameApi.discard(code, token, card.id))}
               />
 
               <div>

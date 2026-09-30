@@ -54,8 +54,6 @@ def hand_size(cur, player_id: int) -> int:
 
 
 def give_card(cur, table_id: int, player_id: int, round_num: int, kind: str = ''):
-    if hand_size(cur, player_id) >= HAND_LIMIT:
-        return None
     card = draw_card(kind)
     cur.execute(
         f"INSERT INTO player_cards (table_id, player_id, card_id, kind, drawn_round) "
@@ -63,6 +61,32 @@ def give_card(cur, table_id: int, player_id: int, round_num: int, kind: str = ''
     )
     cur.execute(f"UPDATE players SET cards = cards + 1 WHERE id = {player_id}")
     return card
+
+
+def discard_worst(cur, table_id: int, round_num: int, player: dict, count: int) -> None:
+    cur.execute(f"SELECT * FROM player_cards WHERE player_id = {player['id']} AND status = 'hand'")
+    rows = [dict(r) for r in cur.fetchall()]
+    tile_type = tile(player['position'])['type']
+
+    def usefulness(row):
+        card = card_info(row['card_id'])
+        allowed, _ = can_play(card, tile_type, 1, player['health'])
+        value = card.get('reward_feathers', 0) * 2 + card.get('draw', 0)
+        if card.get('reward_health', 0) > 0 and player['health'] <= 8:
+            value += 4
+        return (1 if allowed else 0, value)
+
+    rows.sort(key=usefulness)
+    dropped = []
+    for row in rows[:count]:
+        cur.execute(f"UPDATE player_cards SET status = 'discarded' WHERE id = {row['id']}")
+        dropped.append(card_info(row['card_id'])['name'])
+    if dropped:
+        cur.execute(
+            f"UPDATE players SET cards = GREATEST(0, cards - {len(dropped)}) WHERE id = {player['id']}"
+        )
+        names = ', '.join(f'«{n}»' for n in dropped)
+        log(cur, table_id, round_num, 'card', f"{player['nickname']} сбрасывает лишнее: {names}.")
 
 
 BOT_NAMES = [
@@ -152,9 +176,13 @@ def perform_move(cur, table_id: int, round_num: int, player: dict) -> bool:
         if taken:
             names = ', '.join(f'«{n}»' for n in taken)
             log(cur, table_id, round_num, 'card', f"{player['nickname']} тянет из колоды: {names}.")
-        else:
-            log(cur, table_id, round_num, 'card',
-                f"{player['nickname']} не берёт карту: на руке предел в {HAND_LIMIT} карт.")
+        over = hand_size(cur, player['id']) - HAND_LIMIT
+        if over > 0:
+            if player['is_bot']:
+                discard_worst(cur, table_id, round_num, dict(player), over)
+            else:
+                log(cur, table_id, round_num, 'card',
+                    f"У {player['nickname']} перебор: нужно сбросить {over} карт до предела в {HAND_LIMIT}.")
     if effect['dragon']:
         log(cur, table_id, round_num, 'dragon',
             f"Роль дракона по отношениям с богом {GOD_NAMES.get(player['god_id'], '')}: {DRAGON_NAMES[effect['dragon']]}.")
@@ -586,8 +614,8 @@ def handler(event: dict, context) -> dict:
                 for _ in range(3):
                     give_card(cur, table_id, bot_id, 1)
 
-            hand_size = 2 if class_id == 'scribe' else 3
-            for _ in range(hand_size):
+            start_cards = 2 if class_id == 'scribe' else 3
+            for _ in range(start_cards):
                 give_card(cur, table_id, human_id, 1)
 
             log(cur, table_id, 1, 'system',
@@ -602,6 +630,25 @@ def handler(event: dict, context) -> dict:
         if not table:
             return err('Стол не найден', 404)
         table_id = table['id']
+
+        if action == 'discard':
+            cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} AND token = {esc(token)}")
+            me = cur.fetchone()
+            if not me:
+                return err('Вы не за этим столом', 403)
+            hand_id = int(body.get('handId') or 0)
+            cur.execute(
+                f"SELECT * FROM player_cards WHERE id = {hand_id} AND player_id = {me['id']} AND status = 'hand'"
+            )
+            row = cur.fetchone()
+            if not row:
+                return err('Карты нет на руке')
+
+            cur.execute(f"UPDATE player_cards SET status = 'discarded' WHERE id = {hand_id}")
+            cur.execute(f"UPDATE players SET cards = GREATEST(0, cards - 1) WHERE id = {me['id']}")
+            log(cur, table_id, table['round_num'], 'card',
+                f"{me['nickname']} сбрасывает «{card_info(row['card_id'])['name']}».")
+            return ok(fetch_state(cur, code, token))
 
         if action == 'rematch':
             cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} AND token = {esc(token)}")
@@ -644,8 +691,8 @@ def handler(event: dict, context) -> dict:
                     for _ in range(3):
                         give_card(cur, new_table_id, bot_id, 1)
 
-                hand_size = 2 if player['class_id'] == 'scribe' else 3
-                for _ in range(hand_size):
+                start_cards = 2 if player['class_id'] == 'scribe' else 3
+                for _ in range(start_cards):
                     give_card(cur, new_table_id, human_id, 1)
                 log(cur, new_table_id, 1, 'system',
                     f"Реванш: {player['nickname']} снова садится против {len(bots)} соперников ({mood['name']}).")
@@ -693,8 +740,8 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"SELECT id, class_id FROM players WHERE table_id = {table_id} ORDER BY seat_index")
             for row in cur.fetchall():
                 cur.execute(f"UPDATE players SET cards = 0 WHERE id = {row['id']}")
-                hand_size = 2 if row['class_id'] == 'scribe' else 3
-                for _ in range(hand_size):
+                start_cards = 2 if row['class_id'] == 'scribe' else 3
+                for _ in range(start_cards):
                     give_card(cur, table_id, row['id'], 1)
             log(cur, table_id, 1, 'system', 'Партия началась. Круг первый. Каждый получил стартовую руку.')
             return ok(fetch_state(cur, code, token))
@@ -709,6 +756,10 @@ def handler(event: dict, context) -> dict:
         if action == 'move':
             if not current or current['id'] != me['id']:
                 return err('Сейчас не ваш ход')
+            over = hand_size(cur, me['id']) - HAND_LIMIT
+            if over > 0:
+                word = 'карту' if over == 1 else 'карты'
+                return err(f'Сначала сбросьте {over} {word}: на руке больше {HAND_LIMIT}')
 
             perform_move(cur, table_id, table['round_num'], dict(me))
 
@@ -730,6 +781,10 @@ def handler(event: dict, context) -> dict:
         if action == 'skip':
             if not current or current['id'] != me['id']:
                 return err('Сейчас не ваш ход')
+            over = hand_size(cur, me['id']) - HAND_LIMIT
+            if over > 0:
+                word = 'карту' if over == 1 else 'карты'
+                return err(f'Сначала сбросьте {over} {word}: на руке больше {HAND_LIMIT}')
             cur.execute(f"UPDATE players SET health = LEAST(12, health + 1) WHERE id = {me['id']}")
             log(cur, table_id, table['round_num'], 'system',
                 f"{me['nickname']} пропускает ход и переводит дух. +1 здоровья.")
