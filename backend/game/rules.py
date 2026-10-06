@@ -16,8 +16,17 @@ BOARD = [
 ]
 
 BOARD_SIZE = len(BOARD)
+START_POS = 0
+FINISH_POS = BOARD_SIZE + 1
+START_TILE = {'id': START_POS, 'name': 'Врата Старта', 'type': 'старт'}
+FINISH_TILE = {'id': FINISH_POS, 'name': 'Зал Маат', 'type': 'финиш'}
 
 VICTORY_FEATHERS = 20
+FINISH_FEATHERS_HUMAN = 8
+FINISH_FEATHERS_BOT = 14
+
+HUMAN_TURN_SECONDS = 45
+BOT_TURN_SECONDS = 2
 
 DRAGON_ATTITUDE = {
     'ra': 'guardian',
@@ -49,22 +58,30 @@ CLASS_COMBAT = {'vizier': -1, 'warrior': 2, 'priest': 0, 'scribe': 0}
 
 
 def tile(pos: int) -> dict:
-    return BOARD[(pos - 1) % BOARD_SIZE]
+    if pos <= START_POS:
+        return START_TILE
+    if pos >= FINISH_POS:
+        return FINISH_TILE
+    return BOARD[pos - 1]
 
 
 def roll(sides: int = 6) -> int:
     return random.randint(1, sides)
 
 
-def move_steps(god_id: str, class_id: str) -> int:
-    steps = roll()
+def move_steps(god_id: str, class_id: str, blessed: bool = False) -> int:
+    steps = max(roll(), roll()) if blessed else roll()
     if god_id == 'thoth':
         steps += 1
     return steps
 
 
 def advance(pos: int, steps: int) -> int:
-    return ((pos - 1 + steps) % BOARD_SIZE) + 1
+    return max(START_POS, min(FINISH_POS, pos + steps))
+
+
+def finish_need(player: dict) -> int:
+    return FINISH_FEATHERS_BOT if player.get('is_bot') else FINISH_FEATHERS_HUMAN
 
 
 def scales_weight(player: dict, alliance_count: int) -> dict:
@@ -99,6 +116,14 @@ def resolve_tile(player: dict, alliance_count: int) -> dict:
         'scales': None,
         'text': '',
     }
+
+    if kind == 'старт':
+        result['text'] = f"{t['name']}: путь начинается заново."
+        return result
+
+    if kind == 'финиш':
+        result['text'] = f"{t['name']}: Анубис кладёт сердце на весы."
+        return result
 
     if kind == 'храм':
         heal = 2 if player['god_id'] in ('ra', 'bast', 'osiris') else 1
@@ -169,6 +194,9 @@ def victory_check(players: list) -> dict | None:
     alive = [p for p in players if not p['is_out']]
     if len(alive) == 1 and len(players) > 1:
         return {'winner_id': alive[0]['id'], 'reason': 'Остальные Избранные выбыли'}
+    for p in alive:
+        if p['position'] >= FINISH_POS and p['feathers'] >= finish_need(p):
+            return {'winner_id': p['id'], 'reason': 'Первым прошёл путь до Зала Маат'}
     for p in alive:
         if p['feathers'] >= VICTORY_FEATHERS:
             return {'winner_id': p['id'], 'reason': f'Собрано {VICTORY_FEATHERS} перьев истины'}

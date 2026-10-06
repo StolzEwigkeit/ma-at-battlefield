@@ -8,8 +8,10 @@ import psycopg2
 import psycopg2.extras
 
 from rules import (
-    BOARD, BOARD_SIZE, CLASS_NAMES, DRAGON_NAMES, GOD_NAMES, VICTORY_FEATHERS,
-    advance, combat_power, move_steps, resolve_tile, tile, victory_check,
+    BOARD, BOARD_SIZE, BOT_TURN_SECONDS, CLASS_NAMES, DRAGON_NAMES, FINISH_FEATHERS_BOT,
+    FINISH_FEATHERS_HUMAN, FINISH_POS, FINISH_TILE, GOD_NAMES, HUMAN_TURN_SECONDS, START_POS,
+    START_TILE, VICTORY_FEATHERS, advance, combat_power, finish_need, move_steps, resolve_tile,
+    tile, victory_check,
 )
 from cards import DECK, HAND_LIMIT, can_play, card_info, card_kind, draw_card, needs_target
 
@@ -222,19 +224,36 @@ def perform_move(cur, table_id: int, round_num: int, player: dict) -> bool:
     )
     alliance_count = cur.fetchone()['n']
 
-    steps = move_steps(player['god_id'], player['class_id'])
+    human = not player.get('is_bot')
+    steps = move_steps(player['god_id'], player['class_id'], blessed=human)
     moving = dict(player)
     moving['position'] = advance(moving['position'], steps)
     log(cur, table_id, round_num, 'move',
         f"{player['nickname']} бросает кости: {steps}. Фишка идёт на «{tile(moving['position'])['name']}».")
 
     effect = resolve_tile(moving, alliance_count)
-    if effect['extra_move']:
+    if effect['extra_move'] and moving['position'] < FINISH_POS:
         moving['position'] = advance(moving['position'], effect['extra_move'])
+        if moving['position'] >= FINISH_POS:
+            log(cur, table_id, round_num, 'move', f"{player['nickname']} доходит до Зала Маат.")
 
-    health = max(0, min(12, moving['health'] + effect['health_delta']))
-    feathers = max(0, moving['feathers'] + effect['feathers_delta'])
+    health_delta = effect['health_delta']
+    feathers_delta = effect['feathers_delta']
+    if human:
+        if health_delta < 0:
+            health_delta = min(-1, health_delta + 1)
+        if feathers_delta > 0:
+            feathers_delta += 1
+
+    health = max(0, min(12, moving['health'] + health_delta))
+    feathers = max(0, moving['feathers'] + feathers_delta)
     is_out = health <= 0
+
+    if moving['position'] >= FINISH_POS and feathers < finish_need(moving):
+        moving['position'] = START_POS
+        log(cur, table_id, round_num, 'finish',
+            f"{player['nickname']} у Зала Маат: сердце тяжелее пера ({feathers} из {finish_need(moving)}). "
+            f"Обратно к Вратам Старта.")
 
     cur.execute(
         f"UPDATE players SET position = {moving['position']}, health = {health}, "
@@ -275,6 +294,9 @@ def pick_target(cur, table_id: int, bot: dict, mood: dict):
     others = [dict(p) for p in cur.fetchall()]
     if not others:
         return None
+    bots_only = [p for p in others if p.get('is_bot')]
+    if bots_only and random.random() < 0.7:
+        others = bots_only
     if mood['attack_chance'] >= 0.6:
         return max(others, key=lambda p: p['feathers'])
     return min(others, key=lambda p: p['health'])
@@ -349,7 +371,7 @@ def bot_play_card(cur, table_id: int, round_num: int, bot: dict, mood: dict):
                 f"{bot['nickname']} доносит на {target['nickname']}: соперник теряет {loss} пера.")
             return
         if card.get('push_back'):
-            new_pos = advance(target['position'], BOARD_SIZE - card['push_back'])
+            new_pos = advance(min(target['position'], BOARD_SIZE), -card['push_back'])
             cur.execute(f"UPDATE players SET position = {new_pos} WHERE id = {target['id']}")
             log(cur, table_id, round_num, 'card',
                 f"{bot['nickname']} насылает бурю: {target['nickname']} отброшен на «{tile(new_pos)['name']}».")
@@ -407,6 +429,8 @@ def bot_play_card(cur, table_id: int, round_num: int, bot: dict, mood: dict):
         return
 
     position = advance(bot['position'], card['move']) if card.get('move') else bot['position']
+    if position >= FINISH_POS and bot['feathers'] + card.get('reward_feathers', 0) < finish_need(bot):
+        position = min(position, BOARD_SIZE)
     health = max(0, min(12, bot['health'] + card.get('reward_health', 0)))
     feathers = max(0, bot['feathers'] + card.get('reward_feathers', 0))
     cur.execute(f"UPDATE player_cards SET status = 'played', discarded_at = NOW() WHERE id = {row['id']}")
@@ -468,11 +492,14 @@ def bot_social(cur, table_id: int, round_num: int, bot: dict, mood: dict):
 
 
 def run_bots(cur, table_id: int):
-    """Проигрывает ходы ботов, пока очередь не дойдёт до живого игрока."""
-    for _ in range(24):
+    """Делает ход бота, если его время на раздумье прошло. Сбой одного бота не стопорит партию."""
+    for _ in range(1):
         if time.time() > BOT_DEADLINE['at']:
             return
-        cur.execute(f"SELECT * FROM tables WHERE id = {table_id}")
+        cur.execute(
+            f"SELECT *, EXTRACT(EPOCH FROM (NOW() - turn_started_at)) AS elapsed FROM tables "
+            f"WHERE id = {table_id} FOR UPDATE SKIP LOCKED"
+        )
         t = cur.fetchone()
         if not t or t['status'] != 'playing':
             return
@@ -483,7 +510,29 @@ def run_bots(cur, table_id: int):
         current = alive[t['turn_index'] % len(alive)]
         if not current['is_bot']:
             return
+        if float(t['elapsed'] or 0) < BOT_TURN_SECONDS:
+            return
 
+        bot_turn(cur, table_id, dict(t), current)
+
+
+def skip_stuck_bot(cur, table_id: int) -> None:
+    """Аварийно передаёт ход дальше, если бот сломался посреди хода."""
+    cur.execute(f"SELECT * FROM tables WHERE id = {table_id}")
+    t = cur.fetchone()
+    cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} AND is_out = FALSE ORDER BY seat_index")
+    alive = [dict(p) for p in cur.fetchall()]
+    if not t or not alive:
+        return
+    current = alive[t['turn_index'] % len(alive)]
+    if not current['is_bot']:
+        return
+    log(cur, table_id, t['round_num'], 'system', f"{current['nickname']} медлит и пропускает ход.")
+    next_turn(cur, table_id, t['turn_index'], t['round_num'], len(alive))
+
+
+def bot_turn(cur, table_id: int, t: dict, current: dict):
+    if True:
         mood = profile(t.get('difficulty', 'normal'))
         perform_move(cur, table_id, t['round_num'], current)
         cur.execute(f"SELECT * FROM players WHERE id = {current['id']}")
@@ -515,7 +564,10 @@ def log(cur, table_id: int, round_num: int, kind: str, text: str):
 
 
 def fetch_state(cur, code: str, token: str = '') -> dict:
-    cur.execute(f"SELECT * FROM tables WHERE code = {esc(code)}")
+    cur.execute(
+        f"SELECT *, EXTRACT(EPOCH FROM (NOW() - turn_started_at)) AS turn_elapsed "
+        f"FROM tables WHERE code = {esc(code)}"
+    )
     t = cur.fetchone()
     if not t:
         return {}
@@ -587,11 +639,19 @@ def fetch_state(cur, code: str, token: str = '') -> dict:
             'hasBots': any(p.get('is_bot') for p in players),
         },
         'board': BOARD,
+        'start': START_TILE,
+        'finish': FINISH_TILE,
+        'finishNeed': {'human': FINISH_FEATHERS_HUMAN, 'bot': FINISH_FEATHERS_BOT},
+        'turn': {
+            'limit': BOT_TURN_SECONDS if (current and current.get('is_bot')) else HUMAN_TURN_SECONDS,
+            'elapsed': float(t.get('turn_elapsed') or 0),
+            'isBot': bool(current and current.get('is_bot')),
+        },
         'players': [
             {
                 'id': p['id'], 'nickname': p['nickname'], 'godId': p['god_id'], 'godName': GOD_NAMES.get(p['god_id'], p['god_id']),
                 'classId': p['class_id'], 'className': CLASS_NAMES.get(p['class_id'], p['class_id']),
-                'seat': p['seat_index'], 'position': p['position'], 'health': p['health'],
+                'seat': p['seat_index'], 'position': p['position'], 'health': p['health'], 'finishNeed': finish_need(p),
                 'feathers': p['feathers'], 'cards': p['cards'], 'isHost': p['is_host'],
                 'isOut': p['is_out'], 'abilityUsed': p['ability_used'], 'isBot': p.get('is_bot', False),
             }
@@ -618,10 +678,33 @@ def next_turn(cur, table_id: int, turn_index: int, round_num: int, alive_count: 
         new_index = 0
         new_round = round_num + 1
     cur.execute(
-        f"UPDATE tables SET turn_index = {new_index}, round_num = {new_round}, updated_at = NOW() "
-        f"WHERE id = {table_id}"
+        f"UPDATE tables SET turn_index = {new_index}, round_num = {new_round}, updated_at = NOW(), "
+        f"turn_started_at = NOW() WHERE id = {table_id}"
     )
     return new_index, new_round
+
+
+def expire_turn(cur, table_id: int) -> None:
+    """Если время хода живого игрока вышло — ход сгорает и переходит дальше."""
+    cur.execute(
+        f"SELECT *, EXTRACT(EPOCH FROM (NOW() - turn_started_at)) AS elapsed FROM tables WHERE id = {table_id}"
+    )
+    t = cur.fetchone()
+    if not t or t['status'] != 'playing':
+        return
+    cur.execute(f"SELECT * FROM players WHERE table_id = {table_id} AND is_out = FALSE ORDER BY seat_index")
+    alive = [dict(p) for p in cur.fetchall()]
+    if not alive:
+        return
+    current = alive[t['turn_index'] % len(alive)]
+    if current['is_bot'] or float(t['elapsed'] or 0) < HUMAN_TURN_SECONDS:
+        return
+    over = hand_size(cur, current['id']) - HAND_LIMIT
+    if over > 0:
+        discard_worst(cur, table_id, t['round_num'], current, over)
+    log(cur, table_id, t['round_num'], 'system',
+        f"{current['nickname']} не успел за {HUMAN_TURN_SECONDS} секунд — ход переходит дальше.")
+    next_turn(cur, table_id, t['turn_index'], t['round_num'], len(alive))
 
 
 def handler(event: dict, context) -> dict:
@@ -655,8 +738,16 @@ def handler(event: dict, context) -> dict:
             cur.execute(f"SELECT id, status FROM tables WHERE code = {esc(code)}")
             pending = cur.fetchone()
             if pending and pending['status'] == 'playing':
-                BOT_DEADLINE['at'] = time.time() + 2.0
-                run_bots(cur, pending['id'])
+                BOT_DEADLINE['at'] = time.time() + 2.5
+                expire_turn(cur, pending['id'])
+                try:
+                    run_bots(cur, pending['id'])
+                except Exception as exc:
+                    print(f"BOT_ERROR table={pending['id']}: {exc!r}")
+                    connection.rollback()
+                    _DECKS.clear()
+                    skip_stuck_bot(cur, pending['id'])
+                    connection.commit()
             state = fetch_state(cur, code, token)
             if not state:
                 return err('Стол не найден', 404)
@@ -842,8 +933,8 @@ def handler(event: dict, context) -> dict:
             if cur.fetchone()['n'] < 2:
                 return err('Нужно минимум два игрока')
             cur.execute(
-                f"UPDATE tables SET status = 'playing', turn_index = 0, round_num = 1, updated_at = NOW() "
-                f"WHERE id = {table_id}"
+                f"UPDATE tables SET status = 'playing', turn_index = 0, round_num = 1, updated_at = NOW(), "
+                f"turn_started_at = NOW() WHERE id = {table_id}"
             )
             cur.execute(f"SELECT id, class_id FROM players WHERE table_id = {table_id} ORDER BY seat_index")
             for row in cur.fetchall():
@@ -989,6 +1080,8 @@ def handler(event: dict, context) -> dict:
             position = me['position']
             if card.get('move'):
                 position = advance(position, card['move'])
+                if position >= FINISH_POS and me['feathers'] + card.get('reward_feathers', 0) < finish_need(me):
+                    position = BOARD_SIZE
 
             health = max(0, min(12, me['health'] + card.get('reward_health', 0)))
             feathers = max(0, me['feathers'] + card.get('reward_feathers', 0))
@@ -1017,7 +1110,7 @@ def handler(event: dict, context) -> dict:
                     f"{me['nickname']} доносит на {target['nickname']}: соперник теряет {loss} пера.")
 
             if card.get('push_back') and target:
-                new_pos = advance(target['position'], BOARD_SIZE - card['push_back'])
+                new_pos = advance(min(target['position'], BOARD_SIZE), -card['push_back'])
                 cur.execute(f"UPDATE players SET position = {new_pos} WHERE id = {target['id']}")
                 log(cur, table_id, table['round_num'], 'card',
                     f"Буря отбрасывает {target['nickname']} на «{tile(new_pos)['name']}».")

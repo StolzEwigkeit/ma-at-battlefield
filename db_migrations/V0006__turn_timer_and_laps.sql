@@ -1,0 +1,2 @@
+ALTER TABLE t_p15470832_ma_at_battlefield.tables ADD COLUMN turn_started_at TIMESTAMP NOT NULL DEFAULT NOW();
+ALTER TABLE t_p15470832_ma_at_battlefield.players ADD COLUMN laps INTEGER NOT NULL DEFAULT 0;

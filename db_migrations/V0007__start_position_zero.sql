@@ -1,0 +1,1 @@
+ALTER TABLE t_p15470832_ma_at_battlefield.players ALTER COLUMN position SET DEFAULT 0;
