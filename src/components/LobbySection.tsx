@@ -5,6 +5,7 @@ import SectionHeading from '@/components/SectionHeading';
 import { useToast } from '@/hooks/use-toast';
 import { classes, gods } from '@/data/maat';
 import { gameApi, saveSession } from '@/lib/gameApi';
+import HeroPicker from '@/components/game/HeroPicker';
 
 const LobbySection = () => {
   const { toast } = useToast();
@@ -189,40 +190,8 @@ const LobbySection = () => {
                 )}
               </div>
 
-              <div>
-                <label htmlFor="god" className="label-mono mb-2 block">
-                  Ваш бог
-                </label>
-                <select
-                  id="god"
-                  value={god}
-                  onChange={(e) => setGod(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-4 py-3 text-[0.88rem] text-foreground outline-none transition-colors focus:border-primary"
-                >
-                  {gods.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name} — {g.epithet}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="cls" className="label-mono mb-2 block">
-                  Ваш класс
-                </label>
-                <select
-                  id="cls"
-                  value={cls}
-                  onChange={(e) => setCls(e.target.value)}
-                  className="w-full rounded-sm border border-input bg-background px-4 py-3 text-[0.88rem] text-foreground outline-none transition-colors focus:border-primary"
-                >
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} — {c.role}
-                    </option>
-                  ))}
-                </select>
+              <div className="md:col-span-2">
+                <HeroPicker god={god} cls={cls} onGod={setGod} onCls={setCls} />
               </div>
 
               <div className="md:col-span-2">

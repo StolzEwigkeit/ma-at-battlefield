@@ -210,7 +210,12 @@ const Game = () => {
         <main className="mx-auto max-w-[1440px] px-5 py-8 md:px-10">
           <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
             <div className="space-y-6">
-              <GameBoard board={state.board} players={state.players} currentPlayerId={state.currentPlayerId} />
+              <GameBoard
+                board={state.board}
+                players={state.players}
+                currentPlayerId={state.currentPlayerId}
+                seed={state.table.code}
+              />
               <div className="rounded-sm border border-border bg-card p-6">
                 <div className="label-mono mb-4">Хроника партии</div>
                 <GameLog entries={state.log} />
