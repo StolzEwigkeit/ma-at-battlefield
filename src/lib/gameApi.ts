@@ -41,7 +41,16 @@ export type HandCard = {
   needsTarget: boolean;
 };
 
+export type DeckInfo = {
+  left: number;
+  total: number;
+  reshuffles: number;
+  discardCount: number;
+  discardTop: { cardId: string; kind: string; name: string }[];
+};
+
 export type GameState = {
+  deck?: DeckInfo;
   table: {
     code: string;
     seats: number;

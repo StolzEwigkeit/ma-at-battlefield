@@ -2,6 +2,7 @@ import json
 import os
 import random
 import string
+import time
 
 import psycopg2
 import psycopg2.extras
@@ -10,7 +11,7 @@ from rules import (
     BOARD, BOARD_SIZE, CLASS_NAMES, DRAGON_NAMES, GOD_NAMES, VICTORY_FEATHERS,
     advance, combat_power, move_steps, resolve_tile, tile, victory_check,
 )
-from cards import HAND_LIMIT, can_play, card_info, card_kind, draw_card, needs_target
+from cards import DECK, HAND_LIMIT, can_play, card_info, card_kind, draw_card, needs_target
 
 CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,9 @@ def make_token() -> str:
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
 
 
+BOT_DEADLINE: dict = {'at': 0.0}
+
+
 def ok(data: dict, status: int = 200) -> dict:
     return {'statusCode': status, 'headers': CORS, 'body': json.dumps(data, ensure_ascii=False), 'isBase64Encoded': False}
 
@@ -53,8 +57,80 @@ def hand_size(cur, player_id: int) -> int:
     return cur.fetchone()['n']
 
 
+def fresh_deck() -> list:
+    ids = [c['id'] for c in DECK]
+    random.shuffle(ids)
+    return ids
+
+
+_DECKS: dict = {}
+
+
+def load_deck(cur, table_id: int):
+    if table_id in _DECKS:
+        return _DECKS[table_id]
+    cur.execute(f"SELECT deck FROM tables WHERE id = {table_id}")
+    row = cur.fetchone()
+    if not row or row['deck'] is None:
+        return None
+    return [x for x in row['deck'].split(',') if x]
+
+
+def save_deck(cur, table_id: int, deck: list) -> None:
+    _DECKS[table_id] = deck
+
+
+def flush_decks(cur) -> None:
+    for table_id, deck in _DECKS.items():
+        cur.execute(f"UPDATE tables SET deck = {esc(','.join(deck))} WHERE id = {table_id}")
+    _DECKS.clear()
+
+
+def reshuffle_discard(cur, table_id: int, round_num: int) -> list:
+    cur.execute(
+        f"SELECT id, card_id FROM player_cards WHERE table_id = {table_id} "
+        f"AND status IN ('played', 'discarded')"
+    )
+    rows = cur.fetchall()
+    if not rows:
+        return fresh_deck_logged(cur, table_id, round_num)
+    ids = [r['card_id'] for r in rows]
+    random.shuffle(ids)
+    cur.execute(
+        f"UPDATE player_cards SET status = 'recycled' WHERE table_id = {table_id} "
+        f"AND status IN ('played', 'discarded')"
+    )
+    cur.execute(f"UPDATE tables SET reshuffles = reshuffles + 1 WHERE id = {table_id}")
+    log(cur, table_id, round_num, 'system',
+        f"Колода иссякла. Писцы перетасовали сброс — {len(ids)} карт вернулись в игру.")
+    return ids
+
+
+def fresh_deck_logged(cur, table_id: int, round_num: int) -> list:
+    log(cur, table_id, round_num, 'system', 'Колода и сброс пусты. Храм выдаёт новую колоду.')
+    return fresh_deck()
+
+
+def take_from_deck(cur, table_id: int, round_num: int) -> str:
+    deck = load_deck(cur, table_id)
+    if deck is None:
+        cur.execute(
+            f"SELECT card_id FROM player_cards WHERE table_id = {table_id} AND status <> 'recycled'"
+        )
+        used = [r['card_id'] for r in cur.fetchall()]
+        deck = fresh_deck()
+        for cid in used:
+            if cid in deck:
+                deck.remove(cid)
+    if not deck:
+        deck = reshuffle_discard(cur, table_id, round_num)
+    card_id = deck.pop()
+    save_deck(cur, table_id, deck)
+    return card_id
+
+
 def give_card(cur, table_id: int, player_id: int, round_num: int, kind: str = ''):
-    card = draw_card(kind)
+    card = draw_card(kind) if kind else card_info(take_from_deck(cur, table_id, round_num))
     cur.execute(
         f"INSERT INTO player_cards (table_id, player_id, card_id, kind, drawn_round) "
         f"VALUES ({table_id}, {player_id}, {esc(card['id'])}, {esc(card_kind(card['id']))}, {round_num})"
@@ -79,7 +155,7 @@ def discard_worst(cur, table_id: int, round_num: int, player: dict, count: int) 
     rows.sort(key=usefulness)
     dropped = []
     for row in rows[:count]:
-        cur.execute(f"UPDATE player_cards SET status = 'discarded' WHERE id = {row['id']}")
+        cur.execute(f"UPDATE player_cards SET status = 'discarded', discarded_at = NOW() WHERE id = {row['id']}")
         dropped.append(card_info(row['card_id'])['name'])
     if dropped:
         cur.execute(
@@ -249,7 +325,7 @@ def bot_play_card(cur, table_id: int, round_num: int, bot: dict, mood: dict):
         target = pick_target(cur, table_id, bot, mood)
         if not target:
             return
-        cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {row['id']}")
+        cur.execute(f"UPDATE player_cards SET status = 'played', discarded_at = NOW() WHERE id = {row['id']}")
         cur.execute(f"UPDATE players SET cards = GREATEST(0, cards - 1) WHERE id = {bot['id']}")
 
         if card.get('steal_card'):
@@ -311,7 +387,7 @@ def bot_play_card(cur, table_id: int, round_num: int, bot: dict, mood: dict):
             return
         mine = combat_power(bot) + card['attack_bonus'] + mood['combat_bonus']
         theirs = combat_power(target)
-        cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {row['id']}")
+        cur.execute(f"UPDATE player_cards SET status = 'played', discarded_at = NOW() WHERE id = {row['id']}")
         cur.execute(f"UPDATE players SET cards = GREATEST(0, cards - 1) WHERE id = {bot['id']}")
         if mine >= theirs:
             target_health = max(0, target['health'] - 4)
@@ -333,7 +409,7 @@ def bot_play_card(cur, table_id: int, round_num: int, bot: dict, mood: dict):
     position = advance(bot['position'], card['move']) if card.get('move') else bot['position']
     health = max(0, min(12, bot['health'] + card.get('reward_health', 0)))
     feathers = max(0, bot['feathers'] + card.get('reward_feathers', 0))
-    cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {row['id']}")
+    cur.execute(f"UPDATE player_cards SET status = 'played', discarded_at = NOW() WHERE id = {row['id']}")
     cur.execute(
         f"UPDATE players SET position = {position}, health = {health}, feathers = {feathers}, "
         f"cards = GREATEST(0, cards - 1), is_out = {'TRUE' if health <= 0 else 'FALSE'} WHERE id = {bot['id']}"
@@ -394,6 +470,8 @@ def bot_social(cur, table_id: int, round_num: int, bot: dict, mood: dict):
 def run_bots(cur, table_id: int):
     """Проигрывает ходы ботов, пока очередь не дойдёт до живого игрока."""
     for _ in range(24):
+        if time.time() > BOT_DEADLINE['at']:
+            return
         cur.execute(f"SELECT * FROM tables WHERE id = {table_id}")
         t = cur.fetchone()
         if not t or t['status'] != 'playing':
@@ -478,7 +556,29 @@ def fetch_state(cur, code: str, token: str = '') -> dict:
                 'needsTarget': needs_target(info),
             })
 
+    cur.execute(
+        f"SELECT card_id, kind FROM player_cards WHERE table_id = {t['id']} "
+        f"AND status IN ('played', 'discarded') ORDER BY discarded_at DESC NULLS LAST, id DESC"
+    )
+    pile = [dict(r) for r in cur.fetchall()]
+    deck_raw = ','.join(_DECKS[t['id']]) if t['id'] in _DECKS else t.get('deck')
+    if deck_raw is None:
+        cur.execute(f"SELECT COUNT(*) AS n FROM player_cards WHERE table_id = {t['id']} AND status <> 'recycled'")
+        deck_left = max(0, len(DECK) - cur.fetchone()['n'])
+    else:
+        deck_left = len([x for x in deck_raw.split(',') if x])
+
     return {
+        'deck': {
+            'left': deck_left,
+            'total': len(DECK),
+            'reshuffles': t.get('reshuffles') or 0,
+            'discardCount': len(pile),
+            'discardTop': [
+                {'cardId': r['card_id'], 'kind': r['kind'], 'name': card_info(r['card_id']).get('name', '')}
+                for r in pile[:3]
+            ],
+        },
         'table': {
             'code': t['code'], 'seats': t['seats'], 'status': t['status'],
             'round': t['round_num'],
@@ -542,13 +642,21 @@ def handler(event: dict, context) -> dict:
     code = (params.get('code') or body.get('code') or '').strip().upper()
 
     connection = conn()
-    connection.autocommit = True
+    connection.autocommit = False
     cur = connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    failed = False
+    _DECKS.clear()
+    BOT_DEADLINE['at'] = time.time() + 2.4
 
     try:
         if action == 'state':
             if not code:
                 return err('Не указан код стола')
+            cur.execute(f"SELECT id, status FROM tables WHERE code = {esc(code)}")
+            pending = cur.fetchone()
+            if pending and pending['status'] == 'playing':
+                BOT_DEADLINE['at'] = time.time() + 2.0
+                run_bots(cur, pending['id'])
             state = fetch_state(cur, code, token)
             if not state:
                 return err('Стол не найден', 404)
@@ -644,7 +752,7 @@ def handler(event: dict, context) -> dict:
             if not row:
                 return err('Карты нет на руке')
 
-            cur.execute(f"UPDATE player_cards SET status = 'discarded' WHERE id = {hand_id}")
+            cur.execute(f"UPDATE player_cards SET status = 'discarded', discarded_at = NOW() WHERE id = {hand_id}")
             cur.execute(f"UPDATE players SET cards = GREATEST(0, cards - 1) WHERE id = {me['id']}")
             log(cur, table_id, table['round_num'], 'card',
                 f"{me['nickname']} сбрасывает «{card_info(row['card_id'])['name']}».")
@@ -958,7 +1066,7 @@ def handler(event: dict, context) -> dict:
                     log(cur, table_id, table['round_num'], 'card',
                         f"{me['nickname']} бьёт «{card['name']}» ({mine} против {theirs}) и получает отпор: −2 здоровья.")
 
-            cur.execute(f"UPDATE player_cards SET status = 'played' WHERE id = {hand_id}")
+            cur.execute(f"UPDATE player_cards SET status = 'played', discarded_at = NOW() WHERE id = {hand_id}")
             cur.execute(
                 f"UPDATE players SET position = {position}, health = {health}, feathers = {feathers}, "
                 f"cards = GREATEST(0, cards - 1), is_out = {'TRUE' if is_out else 'FALSE'} WHERE id = {me['id']}"
@@ -1072,6 +1180,14 @@ def handler(event: dict, context) -> dict:
             return ok(fetch_state(cur, code, token))
 
         return err('Неизвестное действие')
+    except Exception:
+        failed = True
+        connection.rollback()
+        _DECKS.clear()
+        raise
     finally:
+        if not failed:
+            flush_decks(cur)
+            connection.commit()
         cur.close()
         connection.close()

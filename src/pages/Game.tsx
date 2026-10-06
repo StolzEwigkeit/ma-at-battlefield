@@ -8,6 +8,7 @@ import ActionPanel from '@/components/game/ActionPanel';
 import HandCards from '@/components/game/HandCards';
 import GameOver from '@/components/game/GameOver';
 import RivalsPanel from '@/components/game/RivalsPanel';
+import DeckPanel from '@/components/game/DeckPanel';
 import { useToast } from '@/hooks/use-toast';
 import { clearSession, gameApi, loadSession, saveSession, type GameState } from '@/lib/gameApi';
 
@@ -220,7 +221,10 @@ const Game = () => {
                     seed={state.table.code}
                   />
                 </div>
-                <div className="order-1 lg:order-2">
+                <div className="order-1 grid gap-4 sm:grid-cols-[1fr_190px] lg:order-2 lg:block lg:space-y-4">
+                  <div className="sm:order-2 lg:order-none">
+                    <DeckPanel deck={state.deck} />
+                  </div>
                   <RivalsPanel
                     players={state.players}
                     meId={me?.id ?? null}
