@@ -22,7 +22,7 @@ const CallToActionSection = () => (
         </div>
 
         <h2 className="font-sans text-[clamp(2.1rem,5vw,3.4rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
-          Семь богов уже за столом.
+          Десять богов уже за столом.
           <br />
           <em className="not-italic text-primary">Свободно одно место</em>
         </h2>

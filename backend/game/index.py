@@ -172,7 +172,7 @@ BOT_NAMES = [
     'Красный Пилигрим', 'Гость с Юга', 'Зелёный Прилив',
 ]
 
-BOT_GODS = ['set', 'anubis', 'isis', 'osiris', 'bast', 'thoth', 'ra']
+BOT_GODS = ['set', 'anubis', 'isis', 'osiris', 'bast', 'thoth', 'ra', 'horus', 'tefnut', 'shu']
 BOT_CLASSES = ['warrior', 'vizier', 'priest', 'scribe']
 
 DIFFICULTY = {
@@ -184,7 +184,7 @@ DIFFICULTY = {
         'ally_offer': 0.35,
         'heal_threshold': 8,
         'combat_bonus': 0,
-        'god_pool': ['bast', 'isis', 'osiris', 'ra'],
+        'god_pool': ['bast', 'isis', 'osiris', 'ra', 'tefnut'],
         'class_pool': ['priest', 'vizier', 'scribe'],
     },
     'normal': {
@@ -206,7 +206,7 @@ DIFFICULTY = {
         'ally_offer': 0.15,
         'heal_threshold': 4,
         'combat_bonus': 2,
-        'god_pool': ['set', 'anubis', 'thoth', 'ra'],
+        'god_pool': ['set', 'anubis', 'thoth', 'ra', 'horus', 'shu'],
         'class_pool': ['warrior', 'warrior', 'vizier', 'scribe'],
     },
 }

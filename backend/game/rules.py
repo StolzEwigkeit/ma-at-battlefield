@@ -36,6 +36,9 @@ DRAGON_ATTITUDE = {
     'isis': 'trickster',
     'bast': 'messenger',
     'thoth': 'trickster',
+    'horus': 'enemy',
+    'tefnut': 'guardian',
+    'shu': 'trickster',
 }
 
 DRAGON_NAMES = {
@@ -48,6 +51,7 @@ DRAGON_NAMES = {
 GOD_NAMES = {
     'ra': 'Ра', 'anubis': 'Анубис', 'set': 'Сет', 'osiris': 'Осирис',
     'isis': 'Исида', 'bast': 'Баст', 'thoth': 'Тот',
+    'horus': 'Гор', 'tefnut': 'Тефнут', 'shu': 'Шу',
 }
 
 CLASS_NAMES = {
@@ -71,7 +75,7 @@ def roll(sides: int = 6) -> int:
 
 def move_steps(god_id: str, class_id: str, blessed: bool = False) -> int:
     steps = max(roll(), roll()) if blessed else roll()
-    if god_id == 'thoth':
+    if god_id in ('thoth', 'shu'):
         steps += 1
     return steps
 
@@ -91,6 +95,8 @@ def scales_weight(player: dict, alliance_count: int) -> dict:
         order += 1
     if player['god_id'] == 'set':
         chaos += 2
+    if player['god_id'] == 'tefnut':
+        chaos += 1
     return {'order': order, 'chaos': chaos}
 
 
@@ -98,6 +104,10 @@ def combat_power(player: dict) -> int:
     power = roll() + CLASS_COMBAT.get(player['class_id'], 0)
     if player['god_id'] == 'set':
         power += 2
+    if player['god_id'] == 'horus':
+        power += 1
+    if player['god_id'] == 'shu':
+        power -= 1
     return power
 
 
@@ -140,8 +150,12 @@ def resolve_tile(player: dict, alliance_count: int) -> dict:
             result['feathers_delta'] = 1 if player['god_id'] == 'set' else 0
             result['text'] = f"{t['name']}: территория Сета. −1 здоровья от бури."
         else:
-            result['extra_move'] = 1
-            result['text'] = f"{t['name']}: тракт ускоряет ход. +1 клетка движения."
+            result['extra_move'] = 2 if player['god_id'] == 'shu' else 1
+            result['text'] = (f"{t['name']}: тракт ускоряет ход. +1 клетка движения." if result['extra_move'] == 1
+                              else f"{t['name']}: ветер Шу несёт фишку на две клетки вперёд.")
+        if player['god_id'] == 'tefnut':
+            result['health_delta'] = 1
+            result['text'] = f"{t['name']}: живая вода Тефнут — пески не страшны. +1 здоровья."
 
     elif kind == 'рынок':
         gain = roll(3)
@@ -159,8 +173,8 @@ def resolve_tile(player: dict, alliance_count: int) -> dict:
             power = combat_power(player)
             dragon_power = roll() + 3
             if power >= dragon_power:
-                result['feathers_delta'] = 2
-                result['text'] = f"Дракон-Враг напал ({power} против {dragon_power}). Победа: +2 пера трофеем."
+                result['feathers_delta'] = 3 if player['god_id'] == 'horus' else 2
+                result['text'] = f"Дракон-Враг напал ({power} против {dragon_power}). Победа: +{result['feathers_delta']} пера трофеем."
             else:
                 result['health_delta'] = -3
                 result['text'] = f"Дракон-Враг напал ({power} против {dragon_power}). Поражение: −3 здоровья."

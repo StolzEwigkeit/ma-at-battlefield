@@ -6,6 +6,9 @@ export const GOD_PAWNS: Record<string, string> = {
   isis: '/pawns/god-isis.png',
   bast: '/pawns/god-bast.png',
   thoth: '/pawns/god-thoth.png',
+  horus: '/pawns/god-horus.png',
+  tefnut: '/pawns/god-tefnut.png',
+  shu: '/pawns/god-shu.png',
 };
 
 export const GOD_TINT: Record<string, string> = {
@@ -16,6 +19,9 @@ export const GOD_TINT: Record<string, string> = {
   isis: 'from-[#1f6f78] to-[#08262a]',
   bast: 'from-[#6b4a8a] to-[#1a0f26]',
   thoth: 'from-[#2a5a9e] to-[#0a1630]',
+  horus: 'from-[#b0302a] to-[#2a0a08]',
+  tefnut: 'from-[#1f8a8a] to-[#062626]',
+  shu: 'from-[#6fa3c9] to-[#13293d]',
 };
 
 export const pawnFor = (godId: string) => GOD_PAWNS[godId] ?? GOD_PAWNS.ra;

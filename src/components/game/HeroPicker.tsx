@@ -64,7 +64,7 @@ const HeroPicker = ({ god, cls, onGod, onCls }: Props) => {
     <div className="space-y-8">
       <div>
         <div className="label-mono mb-3">Ваш покровитель — его фигурка станет вашей фишкой</div>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {gods.map((g) => (
             <Frame key={g.id} selected={god === g.id} onClick={() => onGod(g.id)} label={g.name}>
               <img
