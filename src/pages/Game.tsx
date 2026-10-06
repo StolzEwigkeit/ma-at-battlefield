@@ -7,6 +7,7 @@ import GameLog from '@/components/game/GameLog';
 import ActionPanel from '@/components/game/ActionPanel';
 import HandCards from '@/components/game/HandCards';
 import GameOver from '@/components/game/GameOver';
+import RivalsPanel from '@/components/game/RivalsPanel';
 import { useToast } from '@/hooks/use-toast';
 import { clearSession, gameApi, loadSession, saveSession, type GameState } from '@/lib/gameApi';
 
@@ -210,12 +211,26 @@ const Game = () => {
         <main className="mx-auto max-w-[1440px] px-5 py-8 md:px-10">
           <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
             <div className="space-y-6">
-              <GameBoard
-                board={state.board}
-                players={state.players}
-                currentPlayerId={state.currentPlayerId}
-                seed={state.table.code}
-              />
+              <div className="grid gap-4 lg:grid-cols-[1fr_190px]">
+                <div className="order-2 min-w-0 lg:order-1">
+                  <GameBoard
+                    board={state.board}
+                    players={state.players}
+                    currentPlayerId={state.currentPlayerId}
+                    seed={state.table.code}
+                  />
+                </div>
+                <div className="order-1 lg:order-2">
+                  <RivalsPanel
+                    players={state.players}
+                    meId={me?.id ?? null}
+                    currentPlayerId={state.currentPlayerId}
+                    alliances={state.alliances}
+                    victoryFeathers={state.victoryFeathers ?? 20}
+                    handLimit={state.handLimit ?? 7}
+                  />
+                </div>
+              </div>
               <div className="rounded-sm border border-border bg-card p-6">
                 <div className="label-mono mb-4">Хроника партии</div>
                 <GameLog entries={state.log} />
