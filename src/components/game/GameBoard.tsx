@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/ui/icon';
 import type { GamePlayer } from '@/lib/gameApi';
 import { buildPath, tileSlot } from '@/components/game/boardPath';
+import { pawnFor } from '@/components/game/pawns';
 
 const BOARD_ART =
   'https://cdn.poehali.dev/projects/bfa830f0-f2cc-4b64-9f77-de1d82d4eb1b/files/00a5ba1d-a22f-43f9-a30f-80d80efdec13.jpg';
@@ -33,13 +34,6 @@ const seatColors = [
 ];
 
 const stepColors = ['#2a7f8a', '#c98a1f', '#a8432b', '#3f6f9e', '#5f8a3a'];
-
-export const PAWNS: Record<string, string> = {
-  priest: '/pawns/priest.png',
-  warrior: '/pawns/warrior.png',
-  vizier: '/pawns/vizier.png',
-  scribe: '/pawns/scribe.png',
-};
 
 type Props = {
   board: { id: number; name: string; type: string }[];
@@ -154,18 +148,18 @@ const GameBoard = ({ board, players, currentPlayerId, seed = 'maat' }: Props) =>
       {[...bySlot.entries()].map(([slot, group]) =>
         group.map((pl, idx) => {
           const p = slots[slot];
-          const offset = (idx - (group.length - 1) / 2) * 3.2;
+          const offset = (idx - (group.length - 1) / 2) * 4.4;
           const active = pl.id === currentPlayerId;
           return (
             <div
               key={pl.id}
-              title={`${pl.nickname} · ${pl.className} · ${pl.godName}`}
+              title={`${pl.nickname} · ${pl.godName} · ${pl.className}`}
               className="absolute z-10 -translate-x-1/2 -translate-y-[88%] transition-[left,top] duration-150 ease-out"
               style={{ left: `calc(${p.x * 100}% + ${offset}%)`, top: `${p.y * 100}%` }}
             >
               <div className={`relative flex flex-col items-center ${active ? 'animate-bounce' : ''}`}>
                 <img
-                  src={PAWNS[pl.classId] ?? PAWNS.priest}
+                  src={pawnFor(pl.godId)}
                   alt=""
                   className="h-[54px] w-auto drop-shadow-[0_6px_6px_rgba(0,0,0,0.6)] sm:h-[72px]"
                 />

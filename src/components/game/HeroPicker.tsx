@@ -1,13 +1,6 @@
 import Icon from '@/components/ui/icon';
 import { classes, gods } from '@/data/maat';
-import { PAWNS } from '@/components/game/GameBoard';
-
-const CLASS_TINT: Record<string, string> = {
-  priest: 'from-[#1f6f78] to-[#0d2f33]',
-  warrior: 'from-[#8a2a1f] to-[#3a0f0a]',
-  vizier: 'from-[#22427a] to-[#0c1a33]',
-  scribe: 'from-[#2f6b3a] to-[#0f2914]',
-};
+import { GOD_TINT, pawnFor } from '@/components/game/pawns';
 
 type Props = {
   god: string;
@@ -70,49 +63,23 @@ const HeroPicker = ({ god, cls, onGod, onCls }: Props) => {
   return (
     <div className="space-y-8">
       <div>
-        <div className="label-mono mb-3">Ваш жрец — фишка на поле</div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {classes.map((c) => (
-            <Frame key={c.id} selected={cls === c.id} onClick={() => onCls(c.id)} label={c.name}>
-              <div className={`absolute inset-0 bg-gradient-to-b ${CLASS_TINT[c.id] ?? 'from-[#5a3d17] to-[#1b1409]'}`} />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(242,212,146,0.35),transparent_60%)]" />
-              <div className="absolute inset-[5px] rounded-[5px] border border-[#e8c878]/45" />
-              <img
-                src={PAWNS[c.id] ?? PAWNS.priest}
-                alt=""
-                className="absolute left-1/2 top-[7%] h-[66%] w-auto -translate-x-1/2 drop-shadow-[0_10px_10px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-105"
-              />
-              <div className="absolute inset-x-2 bottom-2">
-                <Ribbon title={c.name} sub={c.role} />
-              </div>
-            </Frame>
-          ))}
-        </div>
-        {currentCls && (
-          <div className="mt-4 grid gap-3 rounded-sm border border-border bg-card p-4 text-[0.8rem] leading-relaxed sm:grid-cols-2">
-            <p className="text-card-foreground">
-              <span className="label-mono mr-2 text-primary">Сила</span>
-              {currentCls.strength}
-            </p>
-            <p className="text-muted-foreground">
-              <span className="label-mono mr-2 text-destructive">Слабость</span>
-              {currentCls.weakness}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div className="label-mono mb-3">Ваш покровитель</div>
+        <div className="label-mono mb-3">Ваш покровитель — его фигурка станет вашей фишкой</div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           {gods.map((g) => (
             <Frame key={g.id} selected={god === g.id} onClick={() => onGod(g.id)} label={g.name}>
               <img
                 src={g.image}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover opacity-30 blur-[1px]"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80" />
+              <div className={`absolute inset-0 bg-gradient-to-b opacity-85 ${GOD_TINT[g.id] ?? 'from-[#5a3d17] to-[#1b1409]'}`} />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(242,212,146,0.4),transparent_62%)]" />
+              <img
+                src={pawnFor(g.id)}
+                alt=""
+                className="absolute left-1/2 top-[9%] h-[62%] w-auto max-w-[92%] -translate-x-1/2 object-contain drop-shadow-[0_10px_10px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-110"
+              />
               <div className="absolute inset-[5px] rounded-[5px] border border-[#e8c878]/45" />
               <span className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#e8c878] bg-gradient-to-b from-[#2a6fa8] to-[#123e63] text-[0.8rem] text-white shadow">
                 {g.glyph}
@@ -136,6 +103,41 @@ const HeroPicker = ({ god, cls, onGod, onCls }: Props) => {
           </div>
         )}
       </div>
+      <div>
+        <div className="label-mono mb-3">Ваш класс</div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {classes.map((c) => (
+            <Frame key={c.id} selected={cls === c.id} onClick={() => onCls(c.id)} label={c.name}>
+              <img
+                src={c.image}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80" />
+              <div className="absolute inset-[5px] rounded-[5px] border border-[#e8c878]/45" />
+              <span className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#e8c878] bg-gradient-to-b from-[#3a2a12] to-[#160f05] text-[#f2d492] shadow">
+                <Icon name={c.icon} fallback="User" size={13} />
+              </span>
+              <div className="absolute inset-x-2 bottom-2">
+                <Ribbon title={c.name} sub={c.role} />
+              </div>
+            </Frame>
+          ))}
+        </div>
+        {currentCls && (
+          <div className="mt-4 grid gap-3 rounded-sm border border-border bg-card p-4 text-[0.8rem] leading-relaxed sm:grid-cols-2">
+            <p className="text-card-foreground">
+              <span className="label-mono mr-2 text-primary">Сила</span>
+              {currentCls.strength}
+            </p>
+            <p className="text-muted-foreground">
+              <span className="label-mono mr-2 text-destructive">Слабость</span>
+              {currentCls.weakness}
+            </p>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
